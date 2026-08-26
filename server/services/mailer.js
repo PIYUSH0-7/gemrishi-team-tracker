@@ -10,8 +10,8 @@ function createTransporter(settings = {}) {
   const smtpHost = settings.smtpHost || config.SMTP_HOST || 'smtp.gmail.com';
   const smtpPort = settings.smtpPort || config.SMTP_PORT || 465;
   const smtpSecure = settings.smtpSecure !== undefined ? settings.smtpSecure : true;
-  const smtpUser = settings.smtpUser || config.SMTP_USER || 'gangwarpiyush827@gmail.com';
-  const smtpPass = settings.smtpPass || config.SMTP_PASS || 'bqbx kakb fxql ubur';
+  const smtpUser = settings.smtpUser || config.SMTP_USER || 'pawan@gemrishi.com';
+  const smtpPass = settings.smtpPass || config.SMTP_PASS || 'gyze zuur krxg zrgw';
 
   if (!smtpUser || !smtpPass) {
     return null; // SMTP not configured
@@ -52,7 +52,7 @@ function createTransporter(settings = {}) {
  */
 async function sendReportEmail(report, targetRecipient = null) {
   const settings = db.getSettings();
-  const recipient = targetRecipient || settings.managerEmail || config.MANAGER_EMAIL || 'gangwarpiyush827@gmail.com';
+  const recipient = targetRecipient || settings.managerEmail || config.MANAGER_EMAIL || 'pawan@gemrishi.com';
   const cc = settings.ccEmails ? settings.ccEmails.split(',').map(e => e.trim()).filter(Boolean) : [];
 
   const formattedDate = formatDateDisplay(report.reportDate);
@@ -63,7 +63,7 @@ async function sendReportEmail(report, targetRecipient = null) {
   const textContent = generatePlainText(report, settings.companyName || 'GemRishi');
 
   const senderName = settings.senderName || `${settings.companyName || 'GemRishi'} Work Tracker`;
-  const fromAddress = `"${senderName}" <${settings.smtpUser || config.SMTP_USER || 'gangwarpiyush827@gmail.com'}>`;
+  const fromAddress = `"${senderName}" <${settings.smtpUser || config.SMTP_USER || 'pawan@gemrishi.com'}>`;
 
   const transporter = createTransporter(settings);
 

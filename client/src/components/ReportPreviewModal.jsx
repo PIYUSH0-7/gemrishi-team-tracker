@@ -60,7 +60,7 @@ export default function ReportPreviewModal({
             <div>
               <h2 className="text-sm sm:text-lg font-bold text-white m-0">{companyName} Report Preview</h2>
               <p className="text-2xs sm:text-xs text-white/80 m-0 truncate max-w-[200px] sm:max-w-md">
-                Recipient: <span className="font-semibold text-white">{managerEmail || 'gangwarpiyush827@gmail.com'}</span>
+                Recipient: <span className="font-semibold text-white">{managerEmail || 'pawan@gemrishi.com'}</span>
               </p>
             </div>
           </div>

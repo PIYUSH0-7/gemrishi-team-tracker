@@ -90,14 +90,14 @@ function writeJSON(filePath, data) {
 
 // Default settings sourced directly from server/config.js
 const DEFAULT_SETTINGS = {
-  managerEmail: config.MANAGER_EMAIL || 'gangwarpiyush827@gmail.com',
+  managerEmail: config.MANAGER_EMAIL || 'pawan@gemrishi.com',
   ccEmails: config.CC_EMAILS || '',
   senderName: config.SENDER_NAME || 'GemRishi Team Tracker',
   smtpHost: config.SMTP_HOST || 'smtp.gmail.com',
   smtpPort: 465,
   smtpSecure: true,
-  smtpUser: config.SMTP_USER || 'gangwarpiyush827@gmail.com',
-  smtpPass: config.SMTP_PASS || 'bqbx kakb fxql ubur',
+  smtpUser: config.SMTP_USER || 'pawan@gemrishi.com',
+  smtpPass: config.SMTP_PASS || 'gyze zuur krxg zrgw',
   autoEmailOnSubmit: config.AUTO_EMAIL_ON_SUBMIT !== false,
   subjectPrefix: config.SUBJECT_PREFIX || '[Daily Work Report]',
   companyName: config.COMPANY_NAME || 'GemRishi',
@@ -155,7 +155,7 @@ const SAMPLE_REPORTS = [
     ],
     notes: 'All core architecture changes mapped and ready for testing.',
     emailStatus: 'sent',
-    emailRecipient: 'gangwarpiyush827@gmail.com',
+    emailRecipient: 'pawan@gemrishi.com',
     emailSentAt: '2026-08-25T18:30:15.000Z'
   }
 ];
@@ -297,13 +297,13 @@ const db = {
     const saved = readJSON(SETTINGS_FILE, DEFAULT_SETTINGS);
     return {
       ...saved,
-      managerEmail: saved.managerEmail || config.MANAGER_EMAIL || 'gangwarpiyush827@gmail.com',
+      managerEmail: saved.managerEmail || config.MANAGER_EMAIL || 'pawan@gemrishi.com',
       ccEmails: saved.ccEmails !== undefined ? saved.ccEmails : (config.CC_EMAILS || ''),
       smtpHost: saved.smtpHost || config.SMTP_HOST || 'smtp.gmail.com',
       smtpPort: saved.smtpPort || config.SMTP_PORT || 465,
       smtpSecure: saved.smtpSecure !== undefined ? saved.smtpSecure : true,
-      smtpUser: saved.smtpUser || config.SMTP_USER || 'gangwarpiyush827@gmail.com',
-      smtpPass: saved.smtpPass || config.SMTP_PASS || 'bqbx kakb fxql ubur',
+      smtpUser: saved.smtpUser || config.SMTP_USER || 'pawan@gemrishi.com',
+      smtpPass: saved.smtpPass || config.SMTP_PASS || 'gyze zuur krxg zrgw',
       companyName: saved.companyName || config.COMPANY_NAME || 'GemRishi',
       companyLogo: saved.companyLogo || '',
       brandColor: saved.brandColor || '#224938',
