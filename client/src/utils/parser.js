@@ -33,8 +33,8 @@ export function parseRawReport(rawText) {
     
     // Strip markdown bold asterisks, quotes, emojis from start/end
     const cleanLine = rawLine
-      .replace(/^[\*\#\_\~\"\']+|[\*\#\_\~\"\']+$/g, '')
-      .replace(/^[👉🔹▪️▫️•\-\*\+\>\✓\✔\⏳\🎯\✅\📊\📝\📌]+\s*/u, '')
+      .replace(/^[*#_~"']+|[*#_~"']+$/g, '')
+      .replace(/^[\s\-*+•>🔹▪️▫️👉✓✔⏳🎯✅📊📝📌]+/, '')
       .trim();
 
     if (!cleanLine) continue;
@@ -123,10 +123,10 @@ export function parseRawReport(rawText) {
     // 5. Clean up item content
     let itemContent = rawLine
       .replace(/^\[?\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}.*?\]\s*/, '') // strip timestamp
-      .replace(/^[\*\#\_\~\"\']+|[\*\#\_\~\"\']+$/g, '')
-      .replace(/^[\s\-\*\+\•\>🔹▪️▫️👉✓✔⏳🎯✅📊📝📌]+/, '') // strip bullet markers
-      .replace(/^\d+[\.\)\-\:\s]+\s*/, '') // strip numbering 1. 2)
-      .replace(/^\*+|\*+$/g, '')
+      .replace(/^[*#_~"']+|[*#_~"']+$/g, '')
+      .replace(/^[\s\-*+•>🔹▪️▫️👉✓✔⏳🎯✅📊📝📌]+/, '') // strip bullet markers
+      .replace(/^\d+[.)\-\:\s]+\s*/, '') // strip numbering 1. 2)
+      .replace(/^[*]+|[*]+$/g, '')
       .trim();
 
     if (!itemContent) continue;
