@@ -4,26 +4,35 @@ const os = require('os');
 const crypto = require('crypto');
 const config = require('../config');
 
-// Detect serverless environment (Netlify Functions, AWS Lambda)
-const isServerless = Boolean(
-  process.env.NETLIFY || 
-  process.env.AWS_LAMBDA_FUNCTION_NAME || 
-  process.env.LAMBDA_TASK_ROOT
-);
+// Always use os.tmpdir() for serverless / lambda / netlify
+function resolveDataDir() {
+  if (
+    process.env.NETLIFY_SERVERLESS ||
+    process.env.NETLIFY ||
+    process.env.LAMBDA_TASK_ROOT ||
+    process.env.AWS_LAMBDA_FUNCTION_NAME ||
+    process.env.AWS_EXECUTION_ENV ||
+    __dirname.includes('var') ||
+    __dirname.includes('task') ||
+    __dirname.includes('netlify')
+  ) {
+    return path.join(os.tmpdir(), 'team_track_data');
+  }
+  return path.join(__dirname, '..', 'data');
+}
 
-// In serverless, only /tmp is writable; locally use ../data
-const DATA_DIR = isServerless ? path.join(os.tmpdir(), 'team_track_data') : path.join(__dirname, '..', 'data');
+const DATA_DIR = resolveDataDir();
 const REPORTS_FILE = path.join(DATA_DIR, 'reports.json');
 const SETTINGS_FILE = path.join(DATA_DIR, 'settings.json');
 const DEPARTMENTS_FILE = path.join(DATA_DIR, 'departments.json');
 
-// Ensure data directory exists safely
+// Ensure data directory exists safely without ever throwing unhandled exceptions
 try {
   if (!fs.existsSync(DATA_DIR)) {
     fs.mkdirSync(DATA_DIR, { recursive: true });
   }
 } catch (e) {
-  console.warn('Directory creation note (using in-memory persistence):', e.message);
+  // Silent fallback - all data is maintained in-memory
 }
 
 // In-memory memory store cache for serverless execution
@@ -54,7 +63,7 @@ function readJSON(filePath, defaultValue) {
       return memoryStore[key];
     }
   } catch (err) {
-    console.warn(`File read fallback for ${filePath}:`, err.message);
+    // Read error fallback
   }
 
   memoryStore[key] = Array.isArray(defaultValue) ? [...defaultValue] : { ...defaultValue };
@@ -74,7 +83,7 @@ function writeJSON(filePath, data) {
     try {
       fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8');
     } catch (e) {
-      console.warn(`Disk write bypassed (saved in memory):`, e.message);
+      // Memory store already holds the latest state
     }
   }
 }
