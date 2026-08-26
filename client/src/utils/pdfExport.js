@@ -1,6 +1,9 @@
-import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 
+/**
+ * Helper to escape HTML characters
+ */
 function escapeHTML(str) {
   if (!str) return '';
   return String(str)
@@ -11,31 +14,37 @@ function escapeHTML(str) {
     .replace(/'/g, '&#039;');
 }
 
-function formatDateDisplay(dateString) {
-  if (!dateString) return '';
-  try {
-    const d = new Date(dateString);
-    if (isNaN(d.getTime())) return dateString;
-    return d.toLocaleDateString('en-US', {
-      weekday: 'short',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  } catch {
-    return dateString;
+/**
+ * Adjust hex color brightness
+ */
+function adjustHex(hex, percent) {
+  if (!hex || typeof hex !== 'string') return '#224938';
+  let cleanHex = hex.replace('#', '');
+  if (cleanHex.length === 3) {
+    cleanHex = cleanHex.split('').map(c => c + c).join('');
   }
+  const num = parseInt(cleanHex, 16);
+  if (isNaN(num)) return '#224938';
+
+  let r = (num >> 16) + Math.round(255 * (percent / 100));
+  let g = ((num >> 8) & 0x00FF) + Math.round(255 * (percent / 100));
+  let b = (num & 0x0000FF) + Math.round(255 * (percent / 100));
+
+  r = Math.min(255, Math.max(0, r));
+  g = Math.min(255, Math.max(0, g));
+  b = Math.min(255, Math.max(0, b));
+
+  return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
 }
 
 /**
- * Builds the standalone email HTML layout for PDF rendering
+ * Builds the exact HTML email card layout for rendering to canvas
  */
-export function buildEmailHtmlLayout(report, companyName = 'GemRishi') {
+function buildEmailHtmlLayout(report, branding = {}) {
   const {
-    employeeName = '',
-    department = '',
-    reportDate = '',
-    submittedAt = new Date().toISOString(),
+    employeeName = 'Employee',
+    department = 'General',
+    reportDate = new Date().toISOString().split('T')[0],
     targets = [],
     workCompleted = [],
     results = [],
@@ -43,159 +52,145 @@ export function buildEmailHtmlLayout(report, companyName = 'GemRishi') {
     notes = ''
   } = report;
 
-  const formattedDate = formatDateDisplay(reportDate);
-  const formattedTime = submittedAt 
-    ? new Date(submittedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
-    : '';
+  const companyName = branding.companyName || 'GemRishi';
+  const companyLogo = branding.companyLogo || '';
+  const brandColor = branding.brandColor || '#224938';
+  const brandSecondary = branding.brandSecondaryColor || adjustHex(brandColor, 20);
+  const brandDark = adjustHex(brandColor, -25);
 
-  const renderBulletList = (items, bulletBg = '#059669', bulletColor = '#ffffff') => {
-    const validItems = Array.isArray(items) ? items.filter(t => t && t.trim()) : [];
-    if (validItems.length === 0) {
-      return `<p style="margin: 0; color: #94a3b8; font-style: italic; font-size: 12px;">No items listed.</p>`;
+  let formattedDate = reportDate;
+  try {
+    const d = new Date(reportDate);
+    if (!isNaN(d.getTime())) {
+      formattedDate = d.toLocaleDateString('en-US', {
+        weekday: 'short',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
     }
-    return `
-      <table border="0" cellpadding="0" cellspacing="0" width="100%" style="border-collapse: collapse; width: 100%;">
-        ${validItems.map((item, idx) => `
-          <tr>
-            <td valign="top" style="width: 22px; padding: 4px 0; vertical-align: top;">
-              <div style="width: 17px; height: 17px; background-color: ${bulletBg}; color: ${bulletColor}; border-radius: 50%; text-align: center; line-height: 17px; font-size: 10px; font-weight: bold;">
-                ${idx + 1}
-              </div>
-            </td>
-            <td valign="top" style="padding: 4px 0 4px 8px; font-size: 13px; line-height: 1.5; color: #1e293b; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-              ${escapeHTML(item)}
-            </td>
-          </tr>
-        `).join('')}
-      </table>
-    `;
+  } catch (e) {}
+
+  const renderBullets = (items, badgeColor = brandSecondary) => {
+    if (!items || items.length === 0) {
+      return '<div style="color: #94a3b8; font-style: italic; font-size: 13px; padding: 4px 0;">No items listed.</div>';
+    }
+    return items.map((item, idx) => `
+      <div style="display: flex; align-items: flex-start; gap: 8px; margin-bottom: 6px;">
+        <div style="width: 18px; height: 18px; border-radius: 50%; background-color: ${badgeColor}; color: #ffffff; font-size: 10px; font-weight: bold; display: flex; align-items: center; justify-content: center; flex-shrink: 0; line-height: 18px; text-align: center;">
+          ${idx + 1}
+        </div>
+        <div style="font-size: 13px; line-height: 1.5; color: #1e293b; flex: 1;">
+          ${escapeHTML(item)}
+        </div>
+      </div>
+    `).join('');
   };
 
-  const cleanTargets = Array.isArray(targets) ? targets.filter(t => t && t.trim()) : [];
-  const cleanCompleted = Array.isArray(workCompleted) ? workCompleted.filter(w => w && w.trim()) : [];
-  const cleanResults = Array.isArray(results) ? results.filter(r => r && r.trim()) : [];
-  const cleanPending = Array.isArray(pendingTasks) ? pendingTasks.filter(p => p && p.trim()) : [];
-
   return `
-    <div style="width: 620px; max-width: 620px; background-color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; border-radius: 12px; overflow: hidden; border: 1px solid #cbd5e1; box-sizing: border-box;">
+    <div style="width: 640px; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.08); border: 1px solid #e2e8f0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; box-sizing: border-box;">
       
-      <!-- BRAND HEADER -->
-      <div style="background: linear-gradient(135deg, #1b3d2f 0%, #224938 50%, #059669 100%); padding: 22px 26px; text-align: left; color: #ffffff;">
-        <table border="0" cellpadding="0" cellspacing="0" width="100%">
-          <tr>
-            <td>
-              <div style="font-size: 22px; font-weight: 800; color: #ffffff; letter-spacing: 0.5px; margin: 0;">
-                💎 ${escapeHTML(companyName)}
-              </div>
-              <div style="font-size: 11px; color: #a7f3d0; margin-top: 3px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
-                Daily Team Work Tracker & Dispatch
-              </div>
-            </td>
-            <td align="right" valign="middle">
-              <span style="display: inline-block; background-color: rgba(255, 255, 255, 0.2); color: #ffffff; padding: 4px 12px; border-radius: 20px; font-size: 10px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; border: 1px solid rgba(255, 255, 255, 0.3);">
-                Official Report
-              </span>
-            </td>
-          </tr>
-        </table>
+      <!-- Brand Header -->
+      <div style="background: linear-gradient(135deg, ${brandDark} 0%, ${brandColor} 50%, ${brandSecondary} 100%); padding: 22px 28px; color: #ffffff; display: flex; align-items: center; justify-content: space-between;">
+        <div>
+          ${companyLogo ? `
+            <img src="${companyLogo}" alt="${escapeHTML(companyName)}" style="max-height: 36px; max-width: 140px; object-fit: contain; margin-bottom: 4px; display: block; filter: brightness(0) invert(1);" />
+          ` : ''}
+          <div style="font-size: 22px; font-weight: 800; letter-spacing: 0.3px; margin: 0; line-height: 1.2;">
+            ${escapeHTML(companyName)}
+          </div>
+          <div style="font-size: 11px; color: rgba(255, 255, 255, 0.85); margin-top: 2px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase;">
+            Daily Team Work Report
+          </div>
+        </div>
+        <div>
+          <span style="display: inline-block; background-color: rgba(255, 255, 255, 0.2); color: #ffffff; padding: 4px 12px; border-radius: 16px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; border: 1px solid rgba(255, 255, 255, 0.3);">
+            Official Dispatch
+          </span>
+        </div>
       </div>
 
-      <!-- EMPLOYEE INFO BANNER -->
-      <div style="padding: 16px 26px; background-color: #f8fafc; border-bottom: 1px solid #e2e8f0;">
-        <table border="0" cellpadding="0" cellspacing="0" width="100%">
-          <tr>
-            <td valign="top" style="width: 38%;">
-              <div style="font-size: 10px; text-transform: uppercase; color: #64748b; font-weight: 700; letter-spacing: 0.5px;">
-                Employee Name
-              </div>
-              <div style="font-size: 16px; font-weight: 800; color: #0f172a; margin-top: 2px;">
-                ${escapeHTML(employeeName || 'Pawan Gangwar')}
-              </div>
-            </td>
-            <td valign="top" style="width: 32%;">
-              <div style="font-size: 10px; text-transform: uppercase; color: #64748b; font-weight: 700; letter-spacing: 0.5px;">
-                Department
-              </div>
-              <div style="margin-top: 2px;">
-                <span style="display: inline-block; background-color: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; font-weight: 700; font-size: 11px; padding: 2px 8px; border-radius: 6px;">
-                  🏢 ${escapeHTML(department || 'IT')}
-                </span>
-              </div>
-            </td>
-            <td valign="top" style="width: 30%;">
-              <div style="font-size: 10px; text-transform: uppercase; color: #64748b; font-weight: 700; letter-spacing: 0.5px;">
-                Date & Time
-              </div>
-              <div style="font-size: 12px; font-weight: 700; color: #334155; margin-top: 2px;">
-                📅 ${escapeHTML(formattedDate)}
-              </div>
-              ${formattedTime ? `<div style="font-size: 10px; color: #64748b; margin-top: 1px;">🕒 ${formattedTime}</div>` : ''}
-            </td>
-          </tr>
-        </table>
+      <!-- Employee Info Bar -->
+      <div style="padding: 16px 28px; background-color: #f8fafc; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <div style="font-size: 10px; text-transform: uppercase; color: #64748b; font-weight: 700; letter-spacing: 0.5px;">Employee Name</div>
+          <div style="font-size: 16px; font-weight: 700; color: #0f172a; margin-top: 1px;">${escapeHTML(employeeName)}</div>
+        </div>
+        <div>
+          <div style="font-size: 10px; text-transform: uppercase; color: #64748b; font-weight: 700; letter-spacing: 0.5px;">Department</div>
+          <div style="margin-top: 2px;">
+            <span style="background-color: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; font-weight: 600; font-size: 12px; padding: 2px 8px; border-radius: 6px;">
+              ${escapeHTML(department)}
+            </span>
+          </div>
+        </div>
+        <div style="text-align: right;">
+          <div style="font-size: 10px; text-transform: uppercase; color: #64748b; font-weight: 700; letter-spacing: 0.5px;">Report Date</div>
+          <div style="font-size: 13px; font-weight: 600; color: #334155; margin-top: 2px;">📅 ${escapeHTML(formattedDate)}</div>
+        </div>
       </div>
 
-      <!-- REPORT SECTIONS -->
-      <div style="padding: 20px 26px;">
+      <!-- Content Sections -->
+      <div style="padding: 18px 28px 22px 28px;">
         
-        <!-- 1. TARGETS -->
-        <div style="margin-bottom: 16px; border: 1px solid #bbf7d0; border-radius: 8px; overflow: hidden;">
-          <div style="background-color: #f0fdf4; border-bottom: 1px solid #bbf7d0; padding: 8px 12px; font-size: 13px; font-weight: 700; color: #166534;">
-            🎯 Targets Planned (${cleanTargets.length})
+        <!-- Targets -->
+        <div style="margin-bottom: 14px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+          <div style="background-color: #f8fafc; border-bottom: 1px solid #e2e8f0; padding: 7px 12px; font-size: 12px; font-weight: 700; color: #1e293b;">
+            🎯 Targets for Today (${targets.length})
           </div>
           <div style="padding: 10px 12px; background-color: #ffffff;">
-            ${renderBulletList(cleanTargets, '#10b981', '#ffffff')}
+            ${renderBullets(targets, brandSecondary)}
           </div>
         </div>
 
-        <!-- 2. WORK COMPLETED -->
-        <div style="margin-bottom: 16px; border: 1px solid #a7f3d0; border-left: 4px solid #059669; border-radius: 8px; overflow: hidden;">
-          <div style="background-color: #ecfdf5; border-bottom: 1px solid #a7f3d0; padding: 8px 12px; font-size: 13px; font-weight: 700; color: #065f46;">
-            ✅ Work Completed (${cleanCompleted.length})
+        <!-- Work Completed -->
+        <div style="margin-bottom: 14px; border: 1px solid #cbd5e1; border-left: 4px solid ${brandSecondary}; border-radius: 8px; overflow: hidden;">
+          <div style="background-color: #f0fdf4; border-bottom: 1px solid #bbf7d0; padding: 7px 12px; font-size: 12px; font-weight: 700; color: #166534;">
+            ✅ Work Completed (${workCompleted.length})
           </div>
           <div style="padding: 10px 12px; background-color: #ffffff;">
-            ${renderBulletList(cleanCompleted, '#059669', '#ffffff')}
+            ${renderBullets(workCompleted, brandSecondary)}
           </div>
         </div>
 
-        <!-- 3. RESULTS -->
-        <div style="margin-bottom: 16px; border: 1px solid #99f6e4; border-radius: 8px; overflow: hidden;">
-          <div style="background-color: #f0fdfa; border-bottom: 1px solid #99f6e4; padding: 8px 12px; font-size: 13px; font-weight: 700; color: #115e59;">
-            📊 Key Results & Outcomes (${cleanResults.length})
+        <!-- Results -->
+        <div style="margin-bottom: 14px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+          <div style="background-color: #f0fdfa; border-bottom: 1px solid #99f6e4; padding: 7px 12px; font-size: 12px; font-weight: 700; color: #115e59;">
+            📊 Results & Key Findings (${results.length})
           </div>
           <div style="padding: 10px 12px; background-color: #ffffff;">
-            ${renderBulletList(cleanResults, '#0d9488', '#ffffff')}
+            ${renderBullets(results, '#0d9488')}
           </div>
         </div>
 
-        <!-- 4. PENDING TASKS -->
-        <div style="margin-bottom: ${notes ? '16px' : '0'}; border: 1px solid ${cleanPending.length > 0 ? '#fed7aa' : '#e2e8f0'}; border-left: 4px solid ${cleanPending.length > 0 ? '#f97316' : '#94a3b8'}; border-radius: 8px; overflow: hidden;">
-          <div style="background-color: ${cleanPending.length > 0 ? '#fff7ed' : '#f8fafc'}; border-bottom: 1px solid ${cleanPending.length > 0 ? '#ffedd5' : '#e2e8f0'}; padding: 8px 12px; font-size: 13px; font-weight: 700; color: ${cleanPending.length > 0 ? '#9a3412' : '#475569'};">
-            ⏳ Pending Tasks & Next Steps (${cleanPending.length})
+        <!-- Pending Tasks -->
+        <div style="margin-bottom: ${notes ? '14px' : '0'}; border: 1px solid #fed7aa; border-left: 4px solid #ea580c; border-radius: 8px; overflow: hidden;">
+          <div style="background-color: #fff7ed; border-bottom: 1px solid #ffedd5; padding: 7px 12px; font-size: 12px; font-weight: 700; color: #9a3412;">
+            ⏳ Pending Tasks (${pendingTasks.length})
           </div>
           <div style="padding: 10px 12px; background-color: #ffffff;">
-            ${renderBulletList(cleanPending, cleanPending.length > 0 ? '#ea580c' : '#64748b', '#ffffff')}
+            ${renderBullets(pendingTasks, '#ea580c')}
           </div>
         </div>
 
-        <!-- 5. NOTES -->
+        <!-- Additional Notes -->
         ${notes ? `
-        <div style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; margin-top: 16px;">
-          <div style="background-color: #f8fafc; border-bottom: 1px solid #e2e8f0; padding: 8px 12px; font-size: 12px; font-weight: 700; color: #475569;">
-            📝 Notes / Comments
+          <div style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+            <div style="background-color: #f8fafc; border-bottom: 1px solid #e2e8f0; padding: 7px 12px; font-size: 12px; font-weight: 700; color: #475569;">
+              📝 Notes / Comments
+            </div>
+            <div style="padding: 10px 12px; background-color: #ffffff; font-size: 12px; line-height: 1.5; color: #334155;">
+              ${escapeHTML(notes).replace(/\n/g, '<br/>')}
+            </div>
           </div>
-          <div style="padding: 10px 12px; background-color: #ffffff; font-size: 12px; line-height: 1.5; color: #334155;">
-            ${escapeHTML(notes).replace(/\n/g, '<br/>')}
-          </div>
-        </div>
         ` : ''}
 
       </div>
 
-      <!-- FOOTER -->
-      <div style="background-color: #1b3d2f; padding: 14px 26px; text-align: center; border-top: 1px solid #132a20; font-size: 10px; color: #a7f3d0; line-height: 1.5;">
-        <strong>${escapeHTML(companyName)} Team Work Tracker</strong> &bull; Automated Daily Dispatch<br/>
-        Submitted by ${escapeHTML(employeeName)} (${escapeHTML(department)}) on ${escapeHTML(formattedDate)}
+      <!-- Footer -->
+      <div style="background-color: ${brandDark}; padding: 14px 28px; text-align: center; color: rgba(255,255,255,0.85); font-size: 11px; line-height: 1.4;">
+        <strong>${escapeHTML(companyName)} Team Tracker</strong> &bull; Automated Daily Dispatch<br/>
+        Report submitted by ${escapeHTML(employeeName)} (${escapeHTML(department)}) on ${escapeHTML(formattedDate)}
       </div>
 
     </div>
@@ -203,95 +198,97 @@ export function buildEmailHtmlLayout(report, companyName = 'GemRishi') {
 }
 
 /**
- * Robust cross-platform PDF generator that works reliably on both Desktop and Mobile devices.
- * Generates filename with Date and Employee Name: Work_Report_YYYY-MM-DD_Name.pdf
+ * Downloads the report as a beautiful, crystal-sharp, guaranteed 1-PAGE PDF
  */
-export async function downloadReportEmailPDF(report, customFilename = null) {
-  const safeDate = (report.reportDate || new Date().toISOString().split('T')[0]).trim();
-  const safeName = (report.employeeName || 'Report').trim().replace(/[^a-zA-Z0-9_-]/g, '_');
-  
-  // Format with date as name: Work_Report_2026-08-26_Pawan_Gangwar.pdf
-  const filename = customFilename || `Work_Report_${safeDate}_${safeName}.pdf`;
+export async function downloadReportEmailPDF(report, customBranding = null) {
+  // Sourced branding from localStorage if not provided
+  let branding = customBranding;
+  if (!branding) {
+    try {
+      const saved = localStorage.getItem('gemrishi_branding');
+      if (saved) branding = JSON.parse(saved);
+    } catch (e) {}
+  }
+  branding = branding || {
+    companyName: 'GemRishi',
+    brandColor: '#224938',
+    brandSecondaryColor: '#059669',
+    companyLogo: ''
+  };
 
-  // Create temporary container placed visibly in layout but transparent so html2canvas renders perfectly on mobile
+  // 1. Create off-screen container in DOM
   const container = document.createElement('div');
-  container.id = 'temp-pdf-render-container';
+  container.id = 'pdf-render-offscreen';
   container.style.position = 'fixed';
   container.style.top = '0';
   container.style.left = '0';
-  container.style.width = '620px';
-  container.style.backgroundColor = '#ffffff';
-  container.style.zIndex = '-99999';
-  container.style.opacity = '0.01'; // slight opacity prevents browser discarding render tree
+  container.style.opacity = '0.01';
   container.style.pointerEvents = 'none';
-  container.innerHTML = buildEmailHtmlLayout(report, 'GemRishi');
+  container.style.zIndex = '-99999';
+  container.style.width = '640px';
+  container.style.backgroundColor = '#ffffff';
 
+  container.innerHTML = buildEmailHtmlLayout(report, branding);
   document.body.appendChild(container);
 
-  // Short delay to ensure DOM paint
-  await new Promise(resolve => setTimeout(resolve, 80));
-
   try {
+    // Wait for fonts & images to render
+    await new Promise(r => setTimeout(r, 120));
+
+    // 2. High-resolution canvas capture
     const canvas = await html2canvas(container, {
-      scale: 2,
+      scale: 2.5,
       useCORS: true,
-      logging: false,
+      allowTaint: true,
       backgroundColor: '#ffffff',
-      windowWidth: 800,
-      windowHeight: 1200
+      logging: false
     });
 
+    // 3. Convert canvas to high-quality image
     const imgData = canvas.toDataURL('image/jpeg', 0.95);
-    const pdf = new jsPDF('p', 'mm', 'a4');
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = pdf.internal.pageSize.getHeight();
 
-    // Scale canvas image to fit A4 width nicely with margins
-    const margin = 10;
-    const renderWidth = pdfWidth - (margin * 2);
-    const renderHeight = (canvas.height * renderWidth) / canvas.width;
+    // 4. Create Single-Page A4 Portrait PDF
+    const pdf = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4'
+    });
 
-    let heightLeft = renderHeight;
-    let position = margin;
+    const pageWidth = 210; // mm
+    const pageHeight = 297; // mm
+    const margin = 8; // 8mm margins
+    const maxPrintWidth = pageWidth - (margin * 2); // 194mm
+    const maxPrintHeight = pageHeight - (margin * 2); // 281mm
 
-    // Add first page
-    pdf.addImage(imgData, 'JPEG', margin, position, renderWidth, renderHeight);
-    heightLeft -= (pdfHeight - margin * 2);
+    const imgRatio = canvas.width / canvas.height;
+    let printWidth = maxPrintWidth;
+    let printHeight = printWidth / imgRatio;
 
-    // Add extra pages if needed
-    while (heightLeft > 0) {
-      position = heightLeft - renderHeight + margin;
-      pdf.addPage();
-      pdf.addImage(imgData, 'JPEG', margin, position, renderWidth, renderHeight);
-      heightLeft -= (pdfHeight - margin * 2);
+    // Ensure it strictly fits on 1 page without spilling
+    if (printHeight > maxPrintHeight) {
+      printHeight = maxPrintHeight;
+      printWidth = printHeight * imgRatio;
     }
 
-    // Cross-platform mobile-friendly Blob download
-    const blob = pdf.output('blob');
-    const blobUrl = URL.createObjectURL(blob);
-    const downloadLink = document.createElement('a');
-    downloadLink.href = blobUrl;
-    downloadLink.download = filename;
-    downloadLink.style.display = 'none';
-    document.body.appendChild(downloadLink);
-    downloadLink.click();
+    // Center horizontally
+    const xOffset = (pageWidth - printWidth) / 2;
+    const yOffset = margin;
 
-    setTimeout(() => {
-      if (document.body.contains(downloadLink)) {
-        document.body.removeChild(downloadLink);
-      }
-      URL.revokeObjectURL(blobUrl);
-    }, 1500);
+    pdf.addImage(imgData, 'JPEG', xOffset, yOffset, printWidth, printHeight, undefined, 'FAST');
 
+    // 5. Generate clean filename with Date
+    const safeDate = (report.reportDate || new Date().toISOString().split('T')[0]).replace(/[^0-9\-]/g, '_');
+    const safeName = (report.employeeName || 'Report').replace(/[^a-zA-Z0-9]/g, '_');
+    const fileName = `Work_Report_${safeDate}_${safeName}.pdf`;
+
+    pdf.save(fileName);
     return true;
   } catch (err) {
-    console.error('Error generating PDF with html2canvas:', err);
-    // Fallback: direct print dialog
-    window.print();
-    return false;
+    console.error('Single-Page PDF Export Error:', err);
+    throw err;
   } finally {
-    if (document.body.contains(container)) {
-      document.body.removeChild(container);
+    if (container && container.parentNode) {
+      container.parentNode.removeChild(container);
     }
   }
 }

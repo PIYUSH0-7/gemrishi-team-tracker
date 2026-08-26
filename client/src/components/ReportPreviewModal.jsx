@@ -10,13 +10,16 @@ export default function ReportPreviewModal({
   previewHtml = '',
   onConfirmSend = null,
   isSubmitting = false,
-  managerEmail = ''
+  managerEmail = '',
+  branding = null
 }) {
   const [activeTab, setActiveTab] = useState('email');
   const [copied, setCopied] = useState(false);
 
   if (!isOpen || !report) return null;
 
+  const companyName = branding?.companyName || 'GemRishi';
+  const brandColor = branding?.brandColor || '#224938';
   const plainText = formatReportToPlainText(report);
 
   const handleCopyText = () => {
@@ -26,7 +29,7 @@ export default function ReportPreviewModal({
   };
 
   const handleDownloadPdf = async () => {
-    await downloadReportEmailPDF(report);
+    await downloadReportEmailPDF(report, branding);
   };
 
   return (
@@ -34,22 +37,25 @@ export default function ReportPreviewModal({
       <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-200 w-full max-w-3xl max-h-[92vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         
         {/* Top Header */}
-        <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 bg-gradient-to-r from-[#1b3d2f] to-[#224938] text-white">
+        <div 
+          className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 text-white transition-colors duration-300"
+          style={{ backgroundColor: brandColor }}
+        >
           <div className="flex items-center gap-2">
-            <div className="p-1.5 sm:p-2 bg-emerald-500/30 rounded-xl border border-emerald-400/30">
-              <Mail className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-300" />
+            <div className="p-1.5 sm:p-2 bg-white/20 rounded-xl border border-white/20">
+              <Mail className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
             </div>
             <div>
-              <h2 className="text-sm sm:text-lg font-bold text-white m-0">Live Email Preview</h2>
-              <p className="text-2xs sm:text-xs text-emerald-200/80 m-0 truncate max-w-[200px] sm:max-w-md">
-                To: <span className="font-semibold text-white">{managerEmail || 'gangwarpiyush827@gmail.com'}</span>
+              <h2 className="text-sm sm:text-lg font-bold text-white m-0">{companyName} Report Preview</h2>
+              <p className="text-2xs sm:text-xs text-white/80 m-0 truncate max-w-[200px] sm:max-w-md">
+                Recipient: <span className="font-semibold text-white">{managerEmail || 'gangwarpiyush827@gmail.com'}</span>
               </p>
             </div>
           </div>
 
           <button 
             onClick={onClose}
-            className="p-1.5 text-slate-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+            className="p-1.5 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -60,9 +66,9 @@ export default function ReportPreviewModal({
           <div className="flex items-center gap-1.5">
             <button
               onClick={() => setActiveTab('email')}
-              className={`flex items-center gap-1 px-2.5 sm:px-3 py-1 rounded-lg text-2xs sm:text-xs font-bold transition-all ${
+              className={`flex items-center gap-1 px-2.5 sm:px-3 py-1 rounded-lg text-2xs sm:text-xs font-bold transition-all cursor-pointer ${
                 activeTab === 'email'
-                  ? 'bg-white text-emerald-800 shadow-xs border border-slate-200'
+                  ? 'bg-white text-slate-900 shadow-xs border border-slate-200'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
@@ -71,9 +77,9 @@ export default function ReportPreviewModal({
             </button>
             <button
               onClick={() => setActiveTab('text')}
-              className={`flex items-center gap-1 px-2.5 sm:px-3 py-1 rounded-lg text-2xs sm:text-xs font-bold transition-all ${
+              className={`flex items-center gap-1 px-2.5 sm:px-3 py-1 rounded-lg text-2xs sm:text-xs font-bold transition-all cursor-pointer ${
                 activeTab === 'text'
-                  ? 'bg-white text-emerald-800 shadow-xs border border-slate-200'
+                  ? 'bg-white text-slate-900 shadow-xs border border-slate-200'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
@@ -94,16 +100,17 @@ export default function ReportPreviewModal({
             <button
               type="button"
               onClick={handleDownloadPdf}
-              className="flex items-center gap-1 text-2xs sm:text-xs px-2.5 py-1 bg-white hover:bg-slate-50 text-slate-700 font-semibold rounded-lg border border-slate-300 shadow-2xs transition-colors cursor-pointer"
+              className="flex items-center gap-1 text-2xs sm:text-xs px-2.5 py-1 bg-white hover:bg-slate-50 text-slate-800 font-bold rounded-lg border border-slate-300 shadow-2xs transition-colors cursor-pointer"
+              title="Download exact 1-page PDF"
             >
-              <Printer className="w-3 h-3" />
-              <span className="hidden sm:inline">PDF</span>
+              <Printer className="w-3 h-3 text-slate-700" />
+              <span>Download 1-Page PDF</span>
             </button>
           </div>
         </div>
 
         {/* Content Body */}
-        <div className="p-3 sm:p-6 overflow-y-auto flex-1 bg-slate-50">
+        <div className="p-3 sm:p-6 overflow-y-auto flex-1 bg-slate-100/60">
           
           {activeTab === 'email' && (
             <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-xs border border-slate-200 overflow-hidden">
@@ -114,10 +121,10 @@ export default function ReportPreviewModal({
                 />
               ) : (
                 <div className="p-4 sm:p-6 space-y-4">
-                  <div className="bg-[#224938] text-white p-4 rounded-xl flex items-center justify-between">
+                  <div className="text-white p-4 rounded-xl flex items-center justify-between" style={{ backgroundColor: brandColor }}>
                     <div>
-                      <h2 className="text-base sm:text-lg font-bold text-white m-0">GemRishi Work Report</h2>
-                      <span className="text-2xs text-emerald-200">Daily Dispatch</span>
+                      <h2 className="text-base sm:text-lg font-bold text-white m-0">{companyName} Work Report</h2>
+                      <span className="text-2xs text-white/80">Daily Dispatch</span>
                     </div>
                   </div>
                   <div className="p-3 bg-slate-50 rounded-xl text-xs space-y-1">
@@ -145,7 +152,7 @@ export default function ReportPreviewModal({
           <button
             type="button"
             onClick={onClose}
-            className="px-3.5 sm:px-4 py-2 text-xs sm:text-sm font-semibold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors"
+            className="px-3.5 sm:px-4 py-2 text-xs sm:text-sm font-semibold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors cursor-pointer"
           >
             Back to Edit
           </button>
@@ -155,7 +162,8 @@ export default function ReportPreviewModal({
               type="button"
               disabled={isSubmitting}
               onClick={onConfirmSend}
-              className="flex items-center gap-1.5 px-4 sm:px-6 py-2 text-xs sm:text-sm font-bold text-white bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 rounded-xl shadow-md transition-all cursor-pointer disabled:opacity-50"
+              className="flex items-center gap-1.5 px-4 sm:px-6 py-2 text-xs sm:text-sm font-bold text-white rounded-xl shadow-md transition-all cursor-pointer disabled:opacity-50"
+              style={{ backgroundColor: brandColor }}
             >
               {isSubmitting ? (
                 <>

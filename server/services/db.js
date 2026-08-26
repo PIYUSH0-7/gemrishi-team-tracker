@@ -65,11 +65,11 @@ const DEFAULT_DEPARTMENTS = [
   'Customer Support'
 ];
 
-// Sample initial report for Pawan Gangwar
+// Sample initial report for Piyush Gangwar
 const SAMPLE_REPORTS = [
   {
-    id: 'sample-pawan-2026-08-25',
-    employeeName: 'Pawan Gangwar',
+    id: 'sample-Piyush-2026-08-25',
+    employeeName: 'Piyush Gangwar',
     department: 'IT',
     reportDate: '2026-08-25',
     submittedAt: '2026-08-25T18:30:00.000Z',

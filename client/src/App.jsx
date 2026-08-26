@@ -3,10 +3,26 @@ import Header from './components/Header';
 import ReportForm from './components/ReportForm';
 import Dashboard from './components/Dashboard';
 import SettingsPanel from './components/SettingsPanel';
+import BrandCustomizationModal from './components/BrandCustomizationModal';
 import Toast from './components/Toast';
 
 export default function App() {
   const [managerEmail, setManagerEmail] = useState('');
+  const [branding, setBranding] = useState(() => {
+    try {
+      const saved = localStorage.getItem('gemrishi_branding');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return {
+      companyName: 'GemRishi',
+      companyLogo: '',
+      brandColor: '#224938',
+      brandSecondaryColor: '#059669'
+    };
+  });
+
+  const [isSecretBrandingOpen, setIsSecretBrandingOpen] = useState(false);
+
   const [departments, setDepartments] = useState([
     'IT',
     'Jewellery Design',
@@ -24,10 +40,18 @@ export default function App() {
   // Check if admin mode is requested via URL query e.g. ?admin=true
   const urlParams = new URLSearchParams(window.location.search);
   const isAdmin = urlParams.get('admin') === 'true';
-  const [adminTab, setAdminTab] = useState('dashboard'); // for admin mode only
+  const [adminTab, setAdminTab] = useState('dashboard');
 
   const showToast = (message, type = 'success', duration = 4000) => {
     setToast({ message, type, duration });
+  };
+
+  // Save branding updates
+  const handleSaveBranding = (newBranding) => {
+    setBranding(newBranding);
+    try {
+      localStorage.setItem('gemrishi_branding', JSON.stringify(newBranding));
+    } catch (e) {}
   };
 
   // Initial load: fetch settings and departments
@@ -36,8 +60,21 @@ export default function App() {
     fetch('/api/settings')
       .then(res => res.json())
       .then(data => {
-        if (data && data.managerEmail) {
-          setManagerEmail(data.managerEmail);
+        if (data) {
+          if (data.managerEmail) setManagerEmail(data.managerEmail);
+          
+          if (data.companyName || data.brandColor || data.companyLogo) {
+            const serverBranding = {
+              companyName: data.companyName || 'GemRishi',
+              companyLogo: data.companyLogo || '',
+              brandColor: data.brandColor || '#224938',
+              brandSecondaryColor: data.brandSecondaryColor || '#059669'
+            };
+            setBranding(serverBranding);
+            try {
+              localStorage.setItem('gemrishi_branding', JSON.stringify(serverBranding));
+            } catch (e) {}
+          }
         }
       })
       .catch(err => console.log('Init settings fetch note:', err.message));
@@ -74,7 +111,7 @@ export default function App() {
   };
 
   const handleReportSubmitted = () => {
-    // Keep user on the form or give options
+    // Report submitted successfully
   };
 
   const handleSettingsUpdated = (newSettings) => {
@@ -86,8 +123,11 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col selection:bg-emerald-500 selection:text-white">
       
-      {/* Top Emerald Header */}
-      <Header />
+      {/* Top Header with 7-Click Secret Trigger */}
+      <Header 
+        branding={branding} 
+        onOpenSecretBranding={() => setIsSecretBrandingOpen(true)} 
+      />
 
       {/* Admin navigation toolbar ONLY if ?admin=true is present */}
       {isAdmin && (
@@ -124,6 +164,7 @@ export default function App() {
             showToast={showToast}
             managerEmail={managerEmail}
             departments={departments}
+            branding={branding}
           />
         )}
 
@@ -148,20 +189,29 @@ export default function App() {
 
       {/* Footer */}
       <footer className="bg-slate-900 text-slate-400 py-6 border-t border-slate-800 text-xs no-print">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <span className="font-bold text-slate-200">GemRishi Team Work Tracker</span>
+            <span className="font-bold text-slate-200">{branding.companyName} Team Work Tracker</span>
             <span>&bull;</span>
             <span>Automated Daily Report Dispatch</span>
           </div>
 
           <div className="flex items-center gap-4 text-slate-400">
-            <span>Emerald Green Theme</span>
+            <span>Whitelabel Ready</span>
             <span>&bull;</span>
-            <span>v1.0.0</span>
+            <span>v1.2.0</span>
           </div>
         </div>
       </footer>
+
+      {/* Secret Whitelabel Customization Modal (Triggered by 7 clicks on logo) */}
+      <BrandCustomizationModal
+        isOpen={isSecretBrandingOpen}
+        onClose={() => setIsSecretBrandingOpen(false)}
+        branding={branding}
+        onSaveBranding={handleSaveBranding}
+        showToast={showToast}
+      />
 
       {/* Toast Notification Popup */}
       {toast && (

@@ -54,7 +54,7 @@ async function sendReportEmail(report, targetRecipient = null) {
   const subjectPrefix = settings.subjectPrefix || '[Daily Work Report]';
   const subject = `${subjectPrefix} ${report.employeeName} (${report.department}) - ${formattedDate}`;
 
-  const htmlContent = generateEmailHTML(report, settings.companyName || 'GemRishi');
+  const htmlContent = generateEmailHTML(report, settings);
   const textContent = generatePlainText(report, settings.companyName || 'GemRishi');
 
   const senderName = settings.senderName || `${settings.companyName || 'GemRishi'} Work Tracker`;

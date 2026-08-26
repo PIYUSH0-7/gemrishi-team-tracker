@@ -18,7 +18,7 @@ export function parseRawReport(rawText) {
     notes: ''
   };
 
-  // Clean raw text: remove WhatsApp header timestamps e.g. "[25/08/2026, 18:30] Pawan:"
+  // Clean raw text: remove WhatsApp header timestamps e.g. "[25/08/2026, 18:30] Piyush:"
   let cleanedText = rawText
     .replace(/^\[\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}[,\s]+\d{1,2}:\d{2}(?::\d{2})?\s*(?:[AP]M)?\]\s*[^:]+:\s*/gim, '')
     .trim();

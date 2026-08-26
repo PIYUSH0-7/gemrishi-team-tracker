@@ -10,7 +10,7 @@ export default function SmartPasteModal({ isOpen, onClose, onImport }) {
 
   const sampleTemplate = `*WORK REPORT*
 
-*Name: Pawan Gangwar*
+*Name: Piyush Gangwar*
 *Department: IT*
 *Date: 25 August 2026*
 
@@ -102,7 +102,7 @@ export default function SmartPasteModal({ isOpen, onClose, onImport }) {
             value={rawText}
             onChange={(e) => handleTextChange(e.target.value)}
             rows={8}
-            placeholder={`Paste any text, notes, or bullet points here...\n\nExample:\nName: Pawan Gangwar\nDepartment: IT\nTargets: Finish dynamic slug routing\nCompleted: Investigated backend and fixed controller bugs\nResults: Slugs working\nPending: Final QA testing tomorrow`}
+            placeholder={`Paste any text, notes, or bullet points here...\n\nExample:\nName: Piyush Gangwar\nDepartment: IT\nTargets: Finish dynamic slug routing\nCompleted: Investigated backend and fixed controller bugs\nResults: Slugs working\nPending: Final QA testing tomorrow`}
             className="w-full text-xs sm:text-sm p-3 sm:p-4 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-slate-50 text-slate-900 leading-relaxed resize-y font-sans"
           />
 

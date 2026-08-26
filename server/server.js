@@ -209,7 +209,7 @@ app.post('/api/preview-email', (req, res) => {
   try {
     const report = req.body;
     const settings = db.getSettings();
-    const html = generateEmailHTML(report, settings.companyName || 'GemRishi');
+    const html = generateEmailHTML(report, settings);
     const text = generatePlainText(report, settings.companyName || 'GemRishi');
     res.json({ html, text });
   } catch (err) {

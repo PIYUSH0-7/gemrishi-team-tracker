@@ -17,7 +17,7 @@ import BulletListInput from './BulletListInput';
 import SmartPasteModal from './SmartPasteModal';
 import ReportPreviewModal from './ReportPreviewModal';
 
-export default function ReportForm({ onReportSubmitted, showToast, managerEmail, departments = [] }) {
+export default function ReportForm({ onReportSubmitted, showToast, managerEmail, departments = [], branding = null }) {
   // Form State - initially completely empty until typed or "Load Sample" is clicked
   const [employeeName, setEmployeeName] = useState(() => localStorage.getItem('gemrishi_employee_name') || '');
   const [department, setDepartment] = useState(() => localStorage.getItem('gemrishi_department') || (departments[0] || 'IT'));
@@ -90,7 +90,7 @@ export default function ReportForm({ onReportSubmitted, showToast, managerEmail,
 
   // Load natural, human sample report
   const handleLoadSample = () => {
-    setEmployeeName('Pawan Gangwar');
+    setEmployeeName('Piyush Gangwar');
     setDepartment('IT');
     setReportDate(new Date().toISOString().split('T')[0]);
     setTargets([
@@ -470,6 +470,7 @@ export default function ReportForm({ onReportSubmitted, showToast, managerEmail,
         onConfirmSend={handleSubmit}
         isSubmitting={isSubmitting}
         managerEmail={managerEmail}
+        branding={branding}
       />
 
     </div>

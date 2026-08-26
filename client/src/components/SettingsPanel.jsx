@@ -284,7 +284,7 @@ export default function SettingsPanel({ onSettingsUpdated, showToast, department
                 className="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all"
               />
               <span className="text-2xs text-slate-500 mt-1 block">
-                Resulting subject: <code>{settings.subjectPrefix} Pawan Gangwar (IT) - 25 Aug 2026</code>
+                Resulting subject: <code>{settings.subjectPrefix} Piyush Gangwar (IT) - 25 Aug 2026</code>
               </span>
             </div>
 
