@@ -10,14 +10,20 @@
     "build": "npm run build --prefix client",
     "start": "node server/server.js"
   },
-  "keywords": ["work-tracker", "daily-report", "email-dispatch", "gemrishi"],
+  "keywords": [
+    "work-tracker",
+    "daily-report",
+    "email-dispatch",
+    "gemrishi"
+  ],
   "author": "GemRishi",
   "license": "ISC",
   "dependencies": {
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
-    "nodemailer": "^9.0.5"
+    "nodemailer": "^9.0.5",
+    "serverless-http": "^4.0.0"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"

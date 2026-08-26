@@ -198,6 +198,113 @@ function buildEmailHtmlLayout(report, branding = {}) {
 }
 
 /**
+ * Fallback direct vector PDF generator
+ */
+function generateFallbackPDF(report, branding) {
+  const {
+    employeeName = 'Employee',
+    department = 'General',
+    reportDate = new Date().toISOString().split('T')[0],
+    targets = [],
+    workCompleted = [],
+    results = [],
+    pendingTasks = [],
+    notes = ''
+  } = report;
+
+  const companyName = branding.companyName || 'GemRishi';
+
+  const doc = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: 'a4'
+  });
+
+  // Header Banner
+  doc.setFillColor(34, 73, 56);
+  doc.rect(10, 10, 190, 20, 'F');
+
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(16);
+  doc.setFont('helvetica', 'bold');
+  doc.text(`${companyName} - Daily Work Report`, 15, 22);
+
+  // Info Row
+  doc.setTextColor(30, 41, 59);
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`Employee: ${employeeName}`, 15, 37);
+  doc.text(`Department: ${department}`, 85, 37);
+  doc.text(`Date: ${reportDate}`, 150, 37);
+
+  doc.setDrawColor(226, 232, 240);
+  doc.line(10, 42, 200, 42);
+
+  let y = 50;
+
+  const renderSection = (title, items) => {
+    if (y > 260) return;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(34, 73, 56);
+    doc.text(title, 15, y);
+    y += 6;
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(51, 65, 85);
+
+    if (!items || items.length === 0) {
+      doc.text('- None listed', 18, y);
+      y += 5;
+    } else {
+      items.forEach((item, idx) => {
+        if (y > 275) return;
+        const text = `${idx + 1}. ${item}`;
+        const splitText = doc.splitTextToSize(text, 175);
+        doc.text(splitText, 18, y);
+        y += splitText.length * 4.5;
+      });
+    }
+    y += 4;
+  };
+
+  renderSection(`🎯 Targets for Today (${targets.length})`, targets);
+  renderSection(`✅ Work Completed (${workCompleted.length})`, workCompleted);
+  renderSection(`📊 Results & Key Findings (${results.length})`, results);
+  renderSection(`⏳ Pending Tasks (${pendingTasks.length})`, pendingTasks);
+
+  if (notes && y < 270) {
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(71, 85, 105);
+    doc.text('📝 Notes / Comments', 15, y);
+    y += 6;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(51, 65, 85);
+    const splitNotes = doc.splitTextToSize(notes, 175);
+    doc.text(splitNotes, 18, y);
+  }
+
+  const safeDate = (reportDate || '2026-08-26').replace(/[^0-9\-]/g, '_');
+  const safeName = (employeeName || 'Report').replace(/[^a-zA-Z0-9]/g, '_');
+  const fileName = `Work_Report_${safeDate}_${safeName}.pdf`;
+
+  const pdfBlob = doc.output('blob');
+  const blobUrl = URL.createObjectURL(pdfBlob);
+  const link = document.createElement('a');
+  link.href = blobUrl;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  setTimeout(() => {
+    document.body.removeChild(link);
+    URL.revokeObjectURL(blobUrl);
+  }, 1500);
+}
+
+/**
  * Downloads the report as a crystal-sharp, guaranteed 1-PAGE PDF
  */
 export async function downloadReportEmailPDF(report, customBranding = null) {
@@ -218,29 +325,38 @@ export async function downloadReportEmailPDF(report, customBranding = null) {
   // 1. Create temporary off-screen container in DOM
   const container = document.createElement('div');
   container.id = 'pdf-render-offscreen';
-  container.style.position = 'absolute';
-  container.style.top = '-99999px';
-  container.style.left = '0';
+  container.style.position = 'fixed';
+  container.style.top = '0px';
+  container.style.left = '0px';
   container.style.width = '620px';
   container.style.backgroundColor = '#ffffff';
-  container.style.display = 'block';
+  container.style.zIndex = '-9999';
+  container.style.pointerEvents = 'none';
+  container.style.opacity = '1';
 
   container.innerHTML = buildEmailHtmlLayout(report, branding);
   document.body.appendChild(container);
 
   try {
     // Brief render wait
-    await new Promise(r => setTimeout(r, 150));
+    await new Promise(r => setTimeout(r, 180));
 
-    // 2. High-resolution canvas capture
-    const canvas = await html2canvas(container, {
+    // 2. High-resolution canvas capture with timeout safeguard
+    const canvasPromise = html2canvas(container, {
       scale: 2,
       useCORS: true,
       allowTaint: true,
       backgroundColor: '#ffffff',
       logging: false,
-      windowWidth: 1200
+      scrollY: 0,
+      scrollX: 0
     });
+
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Canvas render timeout')), 5000)
+    );
+
+    const canvas = await Promise.race([canvasPromise, timeoutPromise]);
 
     // 3. Convert to JPEG image
     const imgData = canvas.toDataURL('image/jpeg', 0.95);
@@ -287,13 +403,16 @@ export async function downloadReportEmailPDF(report, customBranding = null) {
     link.download = fileName;
     document.body.appendChild(link);
     link.click();
-    document.body.removeChild(link);
-    setTimeout(() => URL.revokeObjectURL(blobUrl), 2000);
+    setTimeout(() => {
+      document.body.removeChild(link);
+      URL.revokeObjectURL(blobUrl);
+    }, 2000);
 
     return true;
   } catch (err) {
-    console.error('1-Page PDF Export Error:', err);
-    throw err;
+    console.warn('Canvas PDF export warning, falling back to direct vector PDF generator:', err.message);
+    generateFallbackPDF(report, branding);
+    return true;
   } finally {
     if (container && container.parentNode) {
       container.parentNode.removeChild(container);

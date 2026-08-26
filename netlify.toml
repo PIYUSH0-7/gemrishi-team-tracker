@@ -1,0 +1,27 @@
+# Netlify Configuration for GemRishi Team Work Tracker
+[build]
+  command = "npm run build"
+  publish = "client/dist"
+  functions = "netlify/functions"
+
+[functions]
+  node_bundler = "esbuild"
+  included_files = ["server/data/**", "GemRishi.svg"]
+
+# Route /api/* requests to the serverless Netlify function
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/api/api/:splat"
+  status = 200
+
+# Route logo requests
+[[redirects]]
+  from = "/logo.svg"
+  to = "/.netlify/functions/api/logo.svg"
+  status = 200
+
+# SPA fallback for frontend client routing
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
