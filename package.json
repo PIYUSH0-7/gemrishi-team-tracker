@@ -1,0 +1,25 @@
+{
+  "name": "gemrishi-team-tracker",
+  "version": "1.0.0",
+  "description": "Daily Work Tracker and Automated Email Dispatch System for GemRishi",
+  "main": "server/server.js",
+  "scripts": {
+    "dev": "concurrently -n \"SERVER,CLIENT\" -c \"bgBlue.bold,bgGreen.bold\" \"node server/server.js\" \"npm run dev --prefix client\"",
+    "server": "node server/server.js",
+    "client": "npm run dev --prefix client",
+    "build": "npm run build --prefix client",
+    "start": "node server/server.js"
+  },
+  "keywords": ["work-tracker", "daily-report", "email-dispatch", "gemrishi"],
+  "author": "GemRishi",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "nodemailer": "^9.0.5"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

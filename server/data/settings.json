@@ -1,0 +1,14 @@
+{
+  "managerEmail": "management@gemrishi.com",
+  "ccEmails": "",
+  "senderName": "GemRishi Team Tracker",
+  "smtpHost": "smtp.gmail.com",
+  "smtpPort": 587,
+  "smtpSecure": false,
+  "smtpUser": "",
+  "smtpPass": "",
+  "autoEmailOnSubmit": true,
+  "subjectPrefix": "[Daily Work Report]",
+  "companyName": "GemRishi",
+  "updatedAt": "2026-08-26T09:29:27.404Z"
+}
