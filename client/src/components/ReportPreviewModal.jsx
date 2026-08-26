@@ -15,6 +15,7 @@ export default function ReportPreviewModal({
 }) {
   const [activeTab, setActiveTab] = useState('email');
   const [copied, setCopied] = useState(false);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
   if (!isOpen || !report) return null;
 
@@ -29,7 +30,14 @@ export default function ReportPreviewModal({
   };
 
   const handleDownloadPdf = async () => {
-    await downloadReportEmailPDF(report, branding);
+    setIsGeneratingPdf(true);
+    try {
+      await downloadReportEmailPDF(report, branding);
+    } catch (err) {
+      console.error('PDF export error:', err);
+    } finally {
+      setIsGeneratingPdf(false);
+    }
   };
 
   return (
@@ -99,12 +107,22 @@ export default function ReportPreviewModal({
             </button>
             <button
               type="button"
+              disabled={isGeneratingPdf}
               onClick={handleDownloadPdf}
-              className="flex items-center gap-1 text-2xs sm:text-xs px-2.5 py-1 bg-white hover:bg-slate-50 text-slate-800 font-bold rounded-lg border border-slate-300 shadow-2xs transition-colors cursor-pointer"
+              className="flex items-center gap-1 text-2xs sm:text-xs px-2.5 py-1 bg-white hover:bg-slate-50 text-slate-800 font-bold rounded-lg border border-slate-300 shadow-2xs transition-colors cursor-pointer disabled:opacity-60"
               title="Download exact 1-page PDF"
             >
-              <Printer className="w-3 h-3 text-slate-700" />
-              <span>Download 1-Page PDF</span>
+              {isGeneratingPdf ? (
+                <>
+                  <div className="w-3 h-3 border-2 border-slate-700 border-t-transparent rounded-full animate-spin" />
+                  <span>Generating PDF...</span>
+                </>
+              ) : (
+                <>
+                  <Printer className="w-3 h-3 text-slate-700" />
+                  <span>Download 1-Page PDF</span>
+                </>
+              )}
             </button>
           </div>
         </div>

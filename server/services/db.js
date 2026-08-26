@@ -245,17 +245,20 @@ const db = {
     const saved = readJSON(SETTINGS_FILE, DEFAULT_SETTINGS);
     return {
       ...saved,
-      managerEmail: config.MANAGER_EMAIL || saved.managerEmail,
-      ccEmails: config.CC_EMAILS || saved.ccEmails,
-      smtpHost: config.SMTP_HOST || saved.smtpHost,
-      smtpPort: config.SMTP_PORT || saved.smtpPort,
-      smtpSecure: config.SMTP_SECURE !== undefined ? Boolean(config.SMTP_SECURE) : saved.smtpSecure,
-      smtpUser: config.SMTP_USER || saved.smtpUser,
-      smtpPass: config.SMTP_PASS || saved.smtpPass,
-      companyName: config.COMPANY_NAME || saved.companyName,
-      subjectPrefix: config.SUBJECT_PREFIX || saved.subjectPrefix,
-      senderName: config.SENDER_NAME || saved.senderName,
-      autoEmailOnSubmit: config.AUTO_EMAIL_ON_SUBMIT !== undefined ? config.AUTO_EMAIL_ON_SUBMIT : saved.autoEmailOnSubmit
+      managerEmail: saved.managerEmail || config.MANAGER_EMAIL || 'gangwarpiyush827@gmail.com',
+      ccEmails: saved.ccEmails !== undefined ? saved.ccEmails : (config.CC_EMAILS || ''),
+      smtpHost: saved.smtpHost || config.SMTP_HOST || 'smtp.gmail.com',
+      smtpPort: saved.smtpPort || config.SMTP_PORT || 587,
+      smtpSecure: saved.smtpSecure !== undefined ? saved.smtpSecure : Boolean(config.SMTP_SECURE),
+      smtpUser: saved.smtpUser || config.SMTP_USER || '',
+      smtpPass: saved.smtpPass || config.SMTP_PASS || '',
+      companyName: saved.companyName || config.COMPANY_NAME || 'GemRishi',
+      companyLogo: saved.companyLogo || '',
+      brandColor: saved.brandColor || '#224938',
+      brandSecondaryColor: saved.brandSecondaryColor || '#059669',
+      subjectPrefix: saved.subjectPrefix || config.SUBJECT_PREFIX || '[Daily Work Report]',
+      senderName: saved.senderName || config.SENDER_NAME || 'Team Tracker',
+      autoEmailOnSubmit: saved.autoEmailOnSubmit !== undefined ? saved.autoEmailOnSubmit : (config.AUTO_EMAIL_ON_SUBMIT !== false)
     };
   },
 

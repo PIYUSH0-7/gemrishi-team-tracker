@@ -207,10 +207,14 @@ app.get('/api/analytics', (req, res) => {
 // POST /api/preview-email - Live preview of HTML template
 app.post('/api/preview-email', (req, res) => {
   try {
-    const report = req.body;
+    const { branding: clientBranding, ...report } = req.body;
     const settings = db.getSettings();
-    const html = generateEmailHTML(report, settings);
-    const text = generatePlainText(report, settings.companyName || 'GemRishi');
+    const activeBranding = {
+      ...settings,
+      ...(clientBranding || {})
+    };
+    const html = generateEmailHTML(report, activeBranding);
+    const text = generatePlainText(report, activeBranding.companyName || 'GemRishi');
     res.json({ html, text });
   } catch (err) {
     res.status(500).json({ error: 'Failed to generate preview' });

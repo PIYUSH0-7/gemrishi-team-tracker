@@ -118,6 +118,9 @@ export default function ReportForm({ onReportSubmitted, showToast, managerEmail,
     showToast('Loaded sample report!', 'success');
   };
 
+  const brandColor = branding?.brandColor || '#224938';
+  const brandSecondaryColor = branding?.brandSecondaryColor || '#059669';
+
   // Live preview generator
   const handleOpenPreview = async () => {
     const reportPayload = {
@@ -128,7 +131,8 @@ export default function ReportForm({ onReportSubmitted, showToast, managerEmail,
       workCompleted: workCompleted.filter(w => w.trim()),
       results: results.filter(r => r.trim()),
       pendingTasks: pendingTasks.filter(p => p.trim()),
-      notes
+      notes,
+      branding
     };
 
     try {
@@ -226,23 +230,26 @@ export default function ReportForm({ onReportSubmitted, showToast, managerEmail,
   return (
     <div className="max-w-4xl mx-auto px-3 sm:px-6 py-4 sm:py-8 pb-28 sm:pb-32">
       
-      {/* Top Banner */}
-      <div className="mb-5 bg-gradient-to-r from-[#1b3d2f] via-[#224938] to-[#065f46] text-white p-4 sm:p-6 rounded-2xl sm:rounded-3xl shadow-lg border border-emerald-800/40 relative overflow-hidden">
+      {/* Top Banner - Dynamic Brand Colors */}
+      <div 
+        className="mb-5 text-white p-4 sm:p-6 rounded-2xl sm:rounded-3xl shadow-lg border border-black/10 relative overflow-hidden transition-all duration-300"
+        style={{ background: `linear-gradient(135deg, ${brandColor} 0%, ${brandSecondaryColor} 100%)` }}
+      >
         
         {/* Glow accent */}
-        <div className="absolute top-0 right-0 -mt-6 -mr-6 w-48 h-48 bg-emerald-400/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-0 right-0 -mt-6 -mr-6 w-48 h-48 bg-white/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="px-2.5 py-0.5 bg-emerald-500/30 text-emerald-300 text-2xs sm:text-xs font-bold uppercase tracking-wider rounded-full border border-emerald-400/30">
+              <span className="px-2.5 py-0.5 bg-white/20 text-white text-2xs sm:text-xs font-bold uppercase tracking-wider rounded-full border border-white/20">
                 Daily Work Report
               </span>
             </div>
             <h1 className="text-lg sm:text-2xl font-extrabold tracking-tight text-white m-0">
               Submit Today's Work Report
             </h1>
-            <p className="text-xs sm:text-sm text-emerald-100/85 mt-1 max-w-lg leading-relaxed">
+            <p className="text-xs sm:text-sm text-white/85 mt-1 max-w-lg leading-relaxed">
               Fill in your tasks, completed work, and updates. Your report will be automatically emailed to the manager.
             </p>
           </div>
@@ -252,16 +259,16 @@ export default function ReportForm({ onReportSubmitted, showToast, managerEmail,
             <button
               type="button"
               onClick={() => setIsSmartPasteOpen(true)}
-              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-2 bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 text-white font-bold text-xs sm:text-sm rounded-xl shadow-xs transition-all cursor-pointer"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-2 bg-white/20 hover:bg-white/30 active:bg-white/40 text-white font-bold text-xs sm:text-sm rounded-xl shadow-xs border border-white/20 transition-all cursor-pointer"
             >
-              <Sparkles className="w-4 h-4 text-emerald-100" />
+              <Sparkles className="w-4 h-4 text-white" />
               <span>Smart Paste</span>
             </button>
 
             <button
               type="button"
               onClick={handleLoadSample}
-              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/20 active:bg-white/30 text-emerald-100 hover:text-white font-semibold text-xs sm:text-sm rounded-xl border border-white/20 transition-all cursor-pointer"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/20 active:bg-white/30 text-white font-semibold text-xs sm:text-sm rounded-xl border border-white/20 transition-all cursor-pointer"
             >
               <Clipboard className="w-3.5 h-3.5" />
               <span>Load Sample</span>
@@ -417,7 +424,7 @@ export default function ReportForm({ onReportSubmitted, showToast, managerEmail,
               onClick={handleOpenPreview}
               className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 sm:px-6 py-2.5 bg-slate-800 hover:bg-slate-700 active:bg-slate-900 text-white rounded-xl border border-slate-600 text-xs sm:text-sm font-bold transition-all cursor-pointer"
             >
-              <Eye className="w-4 h-4 text-emerald-400" />
+              <Eye className="w-4 h-4 text-amber-300" />
               <span>Preview Email</span>
             </button>
 
@@ -425,7 +432,8 @@ export default function ReportForm({ onReportSubmitted, showToast, managerEmail,
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-5 sm:px-8 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 active:from-emerald-700 active:to-emerald-800 text-white font-extrabold text-xs sm:text-sm rounded-xl shadow-lg shadow-emerald-950/40 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-5 sm:px-8 py-2.5 text-white font-extrabold text-xs sm:text-sm rounded-xl shadow-lg transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:brightness-110 active:brightness-95"
+              style={{ background: `linear-gradient(to right, ${brandColor}, ${brandSecondaryColor})` }}
             >
               {isSubmitting ? (
                 <>
