@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Mail, Copy, Check, Printer, FileText, Send } from 'lucide-react';
 import { formatReportToPlainText } from '../utils/parser';
 import { downloadReportEmailPDF } from '../utils/pdfExport';
+import { generateClientEmailHTML } from '../utils/emailTemplate';
 
 export default function ReportPreviewModal({
   isOpen,
@@ -22,6 +23,9 @@ export default function ReportPreviewModal({
   const companyName = branding?.companyName || 'GemRishi';
   const brandColor = branding?.brandColor || '#224938';
   const plainText = formatReportToPlainText(report);
+  
+  // Always ensure rich HTML email template
+  const activeHtml = previewHtml || generateClientEmailHTML(report, branding);
 
   const handleCopyText = () => {
     navigator.clipboard.writeText(plainText);
@@ -132,26 +136,10 @@ export default function ReportPreviewModal({
           
           {activeTab === 'email' && (
             <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-xs border border-slate-200 overflow-hidden">
-              {previewHtml ? (
-                <div 
-                  className="email-preview-wrapper p-2 sm:p-4"
-                  dangerouslySetInnerHTML={{ __html: previewHtml }} 
-                />
-              ) : (
-                <div className="p-4 sm:p-6 space-y-4">
-                  <div className="text-white p-4 rounded-xl flex items-center justify-between" style={{ backgroundColor: brandColor }}>
-                    <div>
-                      <h2 className="text-base sm:text-lg font-bold text-white m-0">{companyName} Work Report</h2>
-                      <span className="text-2xs text-white/80">Daily Dispatch</span>
-                    </div>
-                  </div>
-                  <div className="p-3 bg-slate-50 rounded-xl text-xs space-y-1">
-                    <div><strong>Employee:</strong> {report.employeeName || 'N/A'}</div>
-                    <div><strong>Department:</strong> {report.department || 'IT'}</div>
-                    <div><strong>Date:</strong> {report.reportDate}</div>
-                  </div>
-                </div>
-              )}
+              <div 
+                className="email-preview-wrapper p-2 sm:p-4"
+                dangerouslySetInnerHTML={{ __html: activeHtml }} 
+              />
             </div>
           )}
 

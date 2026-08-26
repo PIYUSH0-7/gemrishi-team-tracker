@@ -1,5 +1,26 @@
 [
   {
+    "id": "a931f9ba-c823-47af-9407-01544a0f7155",
+    "employeeName": "Pawan Gangwar",
+    "department": "IT",
+    "reportDate": "2026-08-26",
+    "submittedAt": "2026-08-26T12:05:32.208Z",
+    "targets": [
+      "Target 1"
+    ],
+    "workCompleted": [
+      "Task 1"
+    ],
+    "results": [],
+    "pendingTasks": [],
+    "notes": "",
+    "emailStatus": "sent",
+    "emailRecipient": "management@gemrishi.com",
+    "emailSentAt": "2026-08-26T12:05:36.012Z",
+    "emailError": null,
+    "updatedAt": "2026-08-26T12:05:36.012Z"
+  },
+  {
     "id": "52d73c47-e6a5-4570-8654-526dcefa902d",
     "employeeName": "Piyush Gangwar",
     "department": "IT",

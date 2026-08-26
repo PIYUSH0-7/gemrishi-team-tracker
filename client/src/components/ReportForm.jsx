@@ -16,6 +16,7 @@ import {
 import BulletListInput from './BulletListInput';
 import SmartPasteModal from './SmartPasteModal';
 import ReportPreviewModal from './ReportPreviewModal';
+import { generateClientEmailHTML } from '../utils/emailTemplate';
 
 export default function ReportForm({ onReportSubmitted, showToast, managerEmail, departments = [], branding = null }) {
   // Form State - initially completely empty until typed or "Load Sample" is clicked
@@ -135,18 +136,24 @@ export default function ReportForm({ onReportSubmitted, showToast, managerEmail,
       branding
     };
 
+    // Instant client-rendered email preview
+    const clientHtml = generateClientEmailHTML(reportPayload, branding);
+    setPreviewHtml(clientHtml);
+    setIsPreviewOpen(true);
+
+    // Sync with server if available
     try {
       const res = await fetch('/api/preview-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(reportPayload)
       });
-      const data = await res.json();
-      setPreviewHtml(data.html || '');
-      setIsPreviewOpen(true);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.html) setPreviewHtml(data.html);
+      }
     } catch (err) {
-      console.error('Preview error:', err);
-      setIsPreviewOpen(true);
+      console.log('Using client-rendered preview template');
     }
   };
 
