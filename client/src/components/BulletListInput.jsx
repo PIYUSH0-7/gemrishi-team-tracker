@@ -1,15 +1,17 @@
 import React, { useRef } from 'react';
-import { Plus, Trash2, ArrowUp, ArrowDown, Check, Sparkles } from 'lucide-react';
+import { Plus, Trash2, ArrowUp, ArrowDown, Check } from 'lucide-react';
 
 export default function BulletListInput({
   title,
   icon: Icon,
   items,
   setItems,
-  placeholder = 'Type item and press Enter...',
-  accentColor = 'emerald', // 'emerald', 'teal', 'amber', 'indigo'
-  onMoveToCompleted = null, // Optional callback to move a target to completed
-  moveToLabel = 'Done'
+  placeholder = 'Add a task or bullet point...',
+  accentColor = 'emerald',
+  onMoveToCompleted = null,
+  moveToLabel = 'Done',
+  onInputFocus = null,
+  onInputBlur = null
 }) {
   const inputRefs = useRef([]);
 
@@ -22,7 +24,6 @@ export default function BulletListInput({
   const handleKeyDown = (e, index) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      // Add new item after current index
       const updated = [...items];
       updated.splice(index + 1, 0, '');
       setItems(updated);
@@ -30,7 +31,7 @@ export default function BulletListInput({
         if (inputRefs.current[index + 1]) {
           inputRefs.current[index + 1].focus();
         }
-      }, 50);
+      }, 40);
     } else if (e.key === 'Backspace' && items[index] === '' && items.length > 1) {
       e.preventDefault();
       const updated = items.filter((_, i) => i !== index);
@@ -40,7 +41,7 @@ export default function BulletListInput({
         if (inputRefs.current[prevIndex]) {
           inputRefs.current[prevIndex].focus();
         }
-      }, 50);
+      }, 40);
     }
   };
 
@@ -52,12 +53,12 @@ export default function BulletListInput({
       if (inputRefs.current[lastIndex]) {
         inputRefs.current[lastIndex].focus();
       }
-    }, 50);
+    }, 40);
   };
 
   const removeItem = (index) => {
     if (items.length === 1) {
-      setItems(['']); // Keep at least one empty item
+      setItems(['']);
       return;
     }
     const updated = items.filter((_, i) => i !== index);
@@ -73,43 +74,33 @@ export default function BulletListInput({
     setItems(updated);
   };
 
-  // Color mappings
   const themeClasses = {
     emerald: {
-      card: 'border-emerald-200 bg-emerald-50/30',
-      header: 'text-emerald-900',
+      card: 'border-emerald-200 bg-emerald-50/20',
+      header: 'text-emerald-950',
       badge: 'bg-emerald-100 text-emerald-800 border-emerald-300',
-      icon: 'text-emerald-600',
+      icon: 'text-emerald-700',
       number: 'bg-emerald-600 text-white',
       inputFocus: 'focus:border-emerald-500 focus:ring-emerald-500/20',
-      addBtn: 'text-emerald-700 bg-emerald-100/80 hover:bg-emerald-200 border-emerald-300'
+      addBtn: 'text-emerald-800 bg-emerald-100/90 hover:bg-emerald-200 active:bg-emerald-300 border-emerald-300'
     },
     teal: {
-      card: 'border-teal-200 bg-teal-50/30',
-      header: 'text-teal-900',
+      card: 'border-teal-200 bg-teal-50/20',
+      header: 'text-teal-950',
       badge: 'bg-teal-100 text-teal-800 border-teal-300',
-      icon: 'text-teal-600',
+      icon: 'text-teal-700',
       number: 'bg-teal-600 text-white',
       inputFocus: 'focus:border-teal-500 focus:ring-teal-500/20',
-      addBtn: 'text-teal-700 bg-teal-100/80 hover:bg-teal-200 border-teal-300'
+      addBtn: 'text-teal-800 bg-teal-100/90 hover:bg-teal-200 active:bg-teal-300 border-teal-300'
     },
     amber: {
-      card: 'border-amber-200 bg-amber-50/30',
-      header: 'text-amber-900',
+      card: 'border-amber-200 bg-amber-50/20',
+      header: 'text-amber-950',
       badge: 'bg-amber-100 text-amber-800 border-amber-300',
-      icon: 'text-amber-600',
+      icon: 'text-amber-700',
       number: 'bg-amber-600 text-white',
       inputFocus: 'focus:border-amber-500 focus:ring-amber-500/20',
-      addBtn: 'text-amber-700 bg-amber-100/80 hover:bg-amber-200 border-amber-300'
-    },
-    indigo: {
-      card: 'border-indigo-200 bg-indigo-50/30',
-      header: 'text-indigo-900',
-      badge: 'bg-indigo-100 text-indigo-800 border-indigo-300',
-      icon: 'text-indigo-600',
-      number: 'bg-indigo-600 text-white',
-      inputFocus: 'focus:border-indigo-500 focus:ring-indigo-500/20',
-      addBtn: 'text-indigo-700 bg-indigo-100/80 hover:bg-indigo-200 border-indigo-300'
+      addBtn: 'text-amber-800 bg-amber-100/90 hover:bg-amber-200 active:bg-amber-300 border-amber-300'
     }
   };
 
@@ -117,75 +108,77 @@ export default function BulletListInput({
   const activeCount = items.filter(t => t.trim().length > 0).length;
 
   return (
-    <div className={`p-5 rounded-2xl border shadow-sm transition-all duration-200 bg-white ${theme.card}`}>
+    <div className={`p-3.5 sm:p-5 rounded-2xl border shadow-xs transition-all duration-200 bg-white ${theme.card}`}>
       
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2.5">
+      {/* Section Header */}
+      <div className="flex items-center justify-between gap-2 mb-3">
+        <div className="flex items-center gap-2">
           {Icon && (
-            <div className="p-2 rounded-xl bg-white shadow-xs border border-slate-200/80">
-              <Icon className={`w-5 h-5 ${theme.icon}`} />
+            <div className="p-1.5 sm:p-2 rounded-xl bg-white shadow-2xs border border-slate-200 shrink-0">
+              <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${theme.icon}`} />
             </div>
           )}
           <div>
-            <h3 className={`text-base font-bold m-0 ${theme.header}`}>{title}</h3>
-            <span className="text-xs text-slate-500">Press Enter ↵ to quickly add next point</span>
+            <h3 className={`text-sm sm:text-base font-bold m-0 leading-tight ${theme.header}`}>
+              {title}
+            </h3>
+            <span className="text-2xs text-slate-400 hidden sm:inline">Press Enter ↵ to add next item</span>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <span className={`text-xs px-2.5 py-1 rounded-full font-bold border ${theme.badge}`}>
-            {activeCount} {activeCount === 1 ? 'item' : 'items'}
-          </span>
-        </div>
+        <span className={`text-2xs sm:text-xs px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full font-bold border shrink-0 ${theme.badge}`}>
+          {activeCount} {activeCount === 1 ? 'item' : 'items'}
+        </span>
       </div>
 
-      {/* List Items */}
-      <div className="space-y-2.5">
+      {/* Bullet Items */}
+      <div className="space-y-2">
         {items.map((item, index) => (
           <div 
             key={index}
-            className="group flex items-start gap-2.5 p-1.5 rounded-xl bg-white/80 border border-slate-200/80 hover:border-slate-300 transition-all shadow-2xs"
+            className="flex items-center gap-1.5 sm:gap-2.5 p-1 sm:p-1.5 rounded-xl bg-white border border-slate-200/90 hover:border-slate-300 transition-all shadow-2xs"
           >
-            {/* Number badge */}
-            <div className={`shrink-0 w-6 h-6 rounded-lg text-xs font-bold flex items-center justify-center mt-1 shadow-2xs ${theme.number}`}>
+            {/* Number Pill */}
+            <div className={`shrink-0 w-5 h-5 sm:w-6 sm:h-6 rounded-md sm:rounded-lg text-2xs sm:text-xs font-bold flex items-center justify-center ${theme.number}`}>
               {index + 1}
             </div>
 
-            {/* Input textarea/input */}
+            {/* Input */}
             <input
               ref={(el) => (inputRefs.current[index] = el)}
               type="text"
               value={item}
               onChange={(e) => handleItemChange(index, e.target.value)}
               onKeyDown={(e) => handleKeyDown(e, index)}
+              onFocus={onInputFocus}
+              onBlur={onInputBlur}
               placeholder={placeholder}
-              className={`flex-1 min-w-0 px-3 py-2 text-base sm:text-sm bg-transparent border-0 rounded-lg text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white focus:ring-2 ${theme.inputFocus}`}
+              className={`flex-1 min-w-0 px-2 sm:px-3 py-1.5 sm:py-2 text-base sm:text-sm bg-transparent border-0 rounded-lg text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white focus:ring-2 ${theme.inputFocus}`}
             />
 
             {/* Actions for this item */}
-            <div className="flex items-center gap-0.5 sm:gap-1 shrink-0 mt-0.5">
+            <div className="flex items-center gap-0.5 shrink-0">
               
               {/* Optional Move to Completed Action */}
               {onMoveToCompleted && item.trim() && (
                 <button
                   type="button"
-                  title="Mark done & add to Work Completed"
+                  title="Mark as done"
                   onClick={() => onMoveToCompleted(index)}
-                  className="flex items-center gap-1 text-xs px-2 py-1 bg-emerald-100 text-emerald-800 hover:bg-emerald-200 font-semibold rounded-md border border-emerald-300 transition-colors"
+                  className="flex items-center gap-0.5 text-2xs sm:text-xs px-1.5 sm:px-2 py-1 bg-emerald-100 text-emerald-800 hover:bg-emerald-200 active:bg-emerald-300 font-bold rounded-lg border border-emerald-300 transition-colors"
                 >
-                  <Check className="w-3.5 h-3.5" />
+                  <Check className="w-3 h-3 text-emerald-700" />
                   <span className="hidden sm:inline">{moveToLabel}</span>
                 </button>
               )}
 
-              {/* Move up */}
+              {/* Move up (hidden on tiny screens if unnecessary) */}
               {index > 0 && (
                 <button
                   type="button"
                   onClick={() => moveItem(index, -1)}
                   title="Move Up"
-                  className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded"
+                  className="p-1 text-slate-400 hover:text-slate-700 active:bg-slate-100 rounded"
                 >
                   <ArrowUp className="w-3.5 h-3.5" />
                 </button>
@@ -197,39 +190,40 @@ export default function BulletListInput({
                   type="button"
                   onClick={() => moveItem(index, 1)}
                   title="Move Down"
-                  className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded"
+                  className="p-1 text-slate-400 hover:text-slate-700 active:bg-slate-100 rounded"
                 >
                   <ArrowDown className="w-3.5 h-3.5" />
                 </button>
               )}
 
-              {/* Delete */}
+              {/* Delete item */}
               <button
                 type="button"
                 onClick={() => removeItem(index)}
                 title="Remove item"
-                className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors"
+                className="p-1 text-slate-400 hover:text-rose-600 active:bg-rose-50 rounded transition-colors"
               >
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
+
             </div>
           </div>
         ))}
       </div>
 
-      {/* Bottom Add button */}
-      <div className="mt-3 flex items-center justify-between">
+      {/* Add Item button */}
+      <div className="mt-2.5 flex items-center justify-between">
         <button
           type="button"
           onClick={addItem}
-          className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer shadow-2xs ${theme.addBtn}`}
+          className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer shadow-2xs ${theme.addBtn}`}
         >
-          <Plus className="w-4 h-4" />
+          <Plus className="w-3.5 h-3.5" />
           Add Point
         </button>
 
         <span className="text-2xs text-slate-400">
-          Tip: Hit [Enter] key in any box to add next
+          Tip: Hit [Enter] for next
         </span>
       </div>
 

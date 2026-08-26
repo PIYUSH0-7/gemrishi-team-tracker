@@ -16,10 +16,9 @@ import {
 import BulletListInput from './BulletListInput';
 import SmartPasteModal from './SmartPasteModal';
 import ReportPreviewModal from './ReportPreviewModal';
-import { downloadReportEmailPDF } from '../utils/pdfExport';
 
 export default function ReportForm({ onReportSubmitted, showToast, managerEmail, departments = [] }) {
-  // Form State - initially empty until user inputs or clicks "Load Sample"
+  // Form State - initially completely empty until typed or "Load Sample" is clicked
   const [employeeName, setEmployeeName] = useState(() => localStorage.getItem('gemrishi_employee_name') || '');
   const [department, setDepartment] = useState(() => localStorage.getItem('gemrishi_department') || (departments[0] || 'IT'));
   const [reportDate, setReportDate] = useState(() => new Date().toISOString().split('T')[0]);
@@ -30,11 +29,14 @@ export default function ReportForm({ onReportSubmitted, showToast, managerEmail,
   const [pendingTasks, setPendingTasks] = useState(['']);
   const [notes, setNotes] = useState('');
 
-  // Modals & UI state
+  // UI state
   const [isSmartPasteOpen, setIsSmartPasteOpen] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewHtml, setPreviewHtml] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Track active keyboard typing to auto-hide the bottom action bar
+  const [isTyping, setIsTyping] = useState(false);
 
   // Auto-save employee name & department to localStorage
   useEffect(() => {
@@ -44,6 +46,17 @@ export default function ReportForm({ onReportSubmitted, showToast, managerEmail,
   useEffect(() => {
     if (department) localStorage.setItem('gemrishi_department', department);
   }, [department]);
+
+  const handleInputFocus = () => {
+    setIsTyping(true);
+  };
+
+  const handleInputBlur = () => {
+    // Delay slight blur to allow taps on buttons
+    setTimeout(() => {
+      setIsTyping(false);
+    }, 200);
+  };
 
   // Handler to move a Target into Work Completed
   const handleMoveTargetToCompleted = (targetIndex) => {
@@ -72,41 +85,37 @@ export default function ReportForm({ onReportSubmitted, showToast, managerEmail,
     if (parsed.pendingTasks?.length) setPendingTasks(parsed.pendingTasks);
     if (parsed.notes) setNotes(parsed.notes);
 
-    showToast('Report parsed and populated successfully!', 'success');
+    showToast('Report parsed and populated!', 'success');
   };
 
-  // Load sample report ONLY on clicking "Load Sample"
+  // Load natural, human sample report
   const handleLoadSample = () => {
     setEmployeeName('Pawan Gangwar');
     setDepartment('IT');
     setReportDate(new Date().toISOString().split('T')[0]);
     setTargets([
-      'Implement the backend architecture required for Slug Connection.',
-      'Update and review the Product Model and Jewellery Model.',
-      'Review and update the Product Controller and Jewellery Controller files.',
-      'Clean and update the controller files according to the required model structure.',
-      'Check Google Merchant Center and Google Search Console for issues requiring attention.'
+      'Implement backend API endpoints for the dynamic slug connection',
+      'Review and update the Product & Jewellery data models',
+      'Clean controller files to match the new schema structure',
+      'Check Google Merchant Center and Search Console for indexing issues'
     ]);
     setWorkCompleted([
-      'Investigated the backend architecture required for the Slug Connection.',
-      'Reviewed the existing Controller files and identified the files requiring changes.',
-      'Reviewed the Model files and identified the required updates.',
-      'Prepared the backend architecture required for implementing the slug connection.',
-      'Reviewed the Product Controller and Jewellery Controller files for required modifications.',
-      'Checked Google Merchant Center and Google Search Console to identify areas requiring attention.'
+      'Investigated and set up the slug connection backend structure',
+      'Updated Product Controller and Jewellery Controller logic',
+      'Reviewed Model files and updated required fields',
+      'Inspected Search Console reports and resolved pending crawl warnings'
     ]);
     setResults([
-      'The backend structure required for the Slug Connection was investigated and prepared.',
-      'Required Controller and Model files were reviewed to identify necessary changes.',
-      'Admin architecture and related product jewellery pages were reviewed.',
-      'Google Merchant Center and Google Search Console were checked for issues requiring further attention.'
+      'Slug routing is tested and working properly',
+      'Controller and model files updated without any runtime errors',
+      'Merchant Center feed verified and clean'
     ]);
     setPendingTasks([
-      'Complete the implementation of the dynamic Slug Connection.',
-      'Complete the required updates in the Product .'
+      'Complete final integration testing for dynamic slugs',
+      'Finish remaining updates in Product controllers'
     ]);
     setNotes('');
-    showToast('Loaded sample report template!', 'success');
+    showToast('Loaded sample report!', 'success');
   };
 
   // Live preview generator
@@ -137,12 +146,12 @@ export default function ReportForm({ onReportSubmitted, showToast, managerEmail,
     }
   };
 
-  // Submit Report, Auto-Dispatch Email, and Auto-Download PDF in the exact HTML email format
+  // Submit Report & Dispatch Email to Manager
   const handleSubmit = async (e) => {
     if (e) e.preventDefault();
 
     if (!employeeName.trim()) {
-      showToast('Please enter your Employee Name', 'error');
+      showToast('Please enter your Name', 'error');
       return;
     }
 
@@ -169,7 +178,6 @@ export default function ReportForm({ onReportSubmitted, showToast, managerEmail,
       notes: notes.trim()
     };
 
-    // 1. Submit report and auto-send email to manager
     try {
       const res = await fetch('/api/reports', {
         method: 'POST',
@@ -180,7 +188,6 @@ export default function ReportForm({ onReportSubmitted, showToast, managerEmail,
       const data = await res.json();
 
       if (res.ok) {
-        // Trigger celebratory confetti
         try {
           confetti({
             particleCount: 80,
@@ -191,11 +198,11 @@ export default function ReportForm({ onReportSubmitted, showToast, managerEmail,
         } catch (e) {}
 
         if (data.emailResult?.success && !data.emailResult?.previewOnly) {
-          showToast(`✅ Report submitted & emailed to ${data.emailResult.recipient}!`, 'success', 6000);
+          showToast(`✅ Work Report submitted and emailed to ${data.emailResult.recipient}!`, 'success', 6000);
         } else if (data.emailResult?.previewOnly) {
-          showToast(`⚠️ Report saved! To deliver email directly to your inbox, enter your Gmail & App Password in server/config.js`, 'error', 9000);
+          showToast(`⚠️ Report saved! To deliver emails, add your Gmail & App Password in server/config.js`, 'error', 9000);
         } else if (data.emailResult?.error) {
-          showToast(`⚠️ Email delivery notice: ${data.emailResult.error}`, 'error', 9000);
+          showToast(`⚠️ Email notice: ${data.emailResult.error}`, 'error', 9000);
         } else {
           showToast('✅ Work Report submitted successfully!', 'success');
         }
@@ -217,68 +224,62 @@ export default function ReportForm({ onReportSubmitted, showToast, managerEmail,
   };
 
   return (
-    <div className="max-w-5xl mx-auto px-3 sm:px-6 py-4 sm:py-8 pb-32 sm:pb-36">
+    <div className="max-w-4xl mx-auto px-3 sm:px-6 py-4 sm:py-8 pb-28 sm:pb-32">
       
       {/* Top Banner */}
-      <div className="mb-6 bg-gradient-to-r from-[#1b3d2f] via-[#224938] to-[#065f46] text-white p-5 sm:p-8 rounded-2xl sm:rounded-3xl shadow-xl border border-emerald-800/40 relative overflow-hidden">
+      <div className="mb-5 bg-gradient-to-r from-[#1b3d2f] via-[#224938] to-[#065f46] text-white p-4 sm:p-6 rounded-2xl sm:rounded-3xl shadow-lg border border-emerald-800/40 relative overflow-hidden">
         
-        {/* Decorative background glow */}
-        <div className="absolute top-0 right-0 -mt-8 -mr-8 w-64 h-64 bg-emerald-400/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-1/3 -mb-12 w-48 h-48 bg-teal-400/10 rounded-full blur-2xl pointer-events-none" />
+        {/* Glow accent */}
+        <div className="absolute top-0 right-0 -mt-6 -mr-6 w-48 h-48 bg-emerald-400/10 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
+        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 mb-1.5">
-              <span className="px-2.5 py-0.5 bg-emerald-500/30 text-emerald-300 text-2xs sm:text-xs font-extrabold uppercase tracking-wider rounded-full border border-emerald-400/30">
-                Daily Work Submission
+            <div className="flex items-center gap-2 mb-1">
+              <span className="px-2.5 py-0.5 bg-emerald-500/30 text-emerald-300 text-2xs sm:text-xs font-bold uppercase tracking-wider rounded-full border border-emerald-400/30">
+                Daily Work Report
               </span>
-              <span className="text-2xs sm:text-xs text-emerald-200">Auto-Dispatched to Manager</span>
             </div>
-            <h1 className="text-xl sm:text-3xl font-extrabold tracking-tight text-white m-0">
-              Submit Your Daily Work Report
+            <h1 className="text-lg sm:text-2xl font-extrabold tracking-tight text-white m-0">
+              Submit Today's Work Report
             </h1>
-            <p className="text-xs sm:text-sm text-emerald-100/90 mt-1 max-w-xl">
-              Fill in your targets, completed tasks, results, and pending work. Your report will be automatically formatted and emailed to the manager.
+            <p className="text-xs sm:text-sm text-emerald-100/85 mt-1 max-w-lg leading-relaxed">
+              Fill in your tasks, completed work, and updates. Your report will be automatically emailed to the manager.
             </p>
           </div>
 
           {/* Quick Action Buttons */}
-          <div className="flex items-center gap-2">
-            
-            {/* Smart Paste Button */}
+          <div className="flex items-center gap-2 shrink-0">
             <button
               type="button"
               onClick={() => setIsSmartPasteOpen(true)}
-              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3.5 py-2 sm:px-4 sm:py-2.5 bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md transition-all cursor-pointer"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-2 bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 text-white font-bold text-xs sm:text-sm rounded-xl shadow-xs transition-all cursor-pointer"
             >
               <Sparkles className="w-4 h-4 text-emerald-100" />
               <span>Smart Paste</span>
             </button>
 
-            {/* Load Sample Report */}
             <button
               type="button"
               onClick={handleLoadSample}
-              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3.5 py-2 sm:px-4 sm:py-2.5 bg-white/10 hover:bg-white/20 active:bg-white/30 text-emerald-100 hover:text-white font-semibold text-xs sm:text-sm rounded-xl border border-white/20 transition-all cursor-pointer"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/20 active:bg-white/30 text-emerald-100 hover:text-white font-semibold text-xs sm:text-sm rounded-xl border border-white/20 transition-all cursor-pointer"
             >
               <Clipboard className="w-3.5 h-3.5" />
               <span>Load Sample</span>
             </button>
-
           </div>
         </div>
       </div>
 
       {/* Main Submission Form */}
-      <form onSubmit={handleSubmit} className="space-y-5 sm:space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
         
         {/* Profile Card: Name, Department, Date */}
-        <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5">
+        <div className="bg-white p-3.5 sm:p-5 rounded-2xl border border-slate-200 shadow-xs">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
             
             {/* Employee Name */}
             <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+              <label className="block text-2xs sm:text-xs font-bold text-slate-700 uppercase tracking-wider mb-1 flex items-center gap-1.5">
                 <User className="w-3.5 h-3.5 text-emerald-600" />
                 Employee Name <span className="text-rose-500">*</span>
               </label>
@@ -287,21 +288,25 @@ export default function ReportForm({ onReportSubmitted, showToast, managerEmail,
                 required
                 value={employeeName}
                 onChange={(e) => setEmployeeName(e.target.value)}
-                placeholder="Enter your full name"
-                className="w-full px-3.5 py-2.5 bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-300 rounded-xl text-slate-900 font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all text-base sm:text-sm"
+                onFocus={handleInputFocus}
+                onBlur={handleInputBlur}
+                placeholder="Your full name"
+                className="w-full px-3 py-2 bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-300 rounded-xl text-slate-900 font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all text-base sm:text-sm"
               />
             </div>
 
             {/* Department */}
             <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+              <label className="block text-2xs sm:text-xs font-bold text-slate-700 uppercase tracking-wider mb-1 flex items-center gap-1.5">
                 <Building2 className="w-3.5 h-3.5 text-emerald-600" />
                 Department <span className="text-rose-500">*</span>
               </label>
               <select
                 value={department}
                 onChange={(e) => setDepartment(e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-300 rounded-xl text-slate-900 font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all text-base sm:text-sm cursor-pointer"
+                onFocus={handleInputFocus}
+                onBlur={handleInputBlur}
+                className="w-full px-3 py-2 bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-300 rounded-xl text-slate-900 font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all text-base sm:text-sm cursor-pointer"
               >
                 {departments.map((dept) => (
                   <option key={dept} value={dept}>
@@ -313,7 +318,7 @@ export default function ReportForm({ onReportSubmitted, showToast, managerEmail,
 
             {/* Report Date */}
             <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+              <label className="block text-2xs sm:text-xs font-bold text-slate-700 uppercase tracking-wider mb-1 flex items-center gap-1.5">
                 <Calendar className="w-3.5 h-3.5 text-emerald-600" />
                 Report Date <span className="text-rose-500">*</span>
               </label>
@@ -322,7 +327,9 @@ export default function ReportForm({ onReportSubmitted, showToast, managerEmail,
                 required
                 value={reportDate}
                 onChange={(e) => setReportDate(e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-300 rounded-xl text-slate-900 font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all text-base sm:text-sm cursor-pointer"
+                onFocus={handleInputFocus}
+                onBlur={handleInputBlur}
+                className="w-full px-3 py-2 bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-300 rounded-xl text-slate-900 font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all text-base sm:text-sm cursor-pointer"
               />
             </div>
 
@@ -331,14 +338,16 @@ export default function ReportForm({ onReportSubmitted, showToast, managerEmail,
 
         {/* 1. Targets Planned */}
         <BulletListInput
-          title="Targets Planned for Today"
+          title="Targets for Today"
           icon={TrendingUp}
           items={targets}
           setItems={setTargets}
-          placeholder="e.g. Implement backend architecture"
+          placeholder="What did you plan to work on today?"
           accentColor="emerald"
           onMoveToCompleted={handleMoveTargetToCompleted}
           moveToLabel="Done"
+          onInputFocus={handleInputFocus}
+          onInputBlur={handleInputBlur}
         />
 
         {/* 2. Work Completed */}
@@ -347,8 +356,10 @@ export default function ReportForm({ onReportSubmitted, showToast, managerEmail,
           icon={FileCheck}
           items={workCompleted}
           setItems={setWorkCompleted}
-          placeholder="e.g. Investigated backend architecture"
+          placeholder="What tasks or updates did you finish today?"
           accentColor="emerald"
+          onInputFocus={handleInputFocus}
+          onInputBlur={handleInputBlur}
         />
 
         {/* 3. Results & Key Outcomes */}
@@ -357,44 +368,54 @@ export default function ReportForm({ onReportSubmitted, showToast, managerEmail,
           icon={Sparkles}
           items={results}
           setItems={setResults}
-          placeholder="e.g. Backend structure investigated and prepared"
+          placeholder="What was the result or outcome of your work?"
           accentColor="teal"
+          onInputFocus={handleInputFocus}
+          onInputBlur={handleInputBlur}
         />
 
         {/* 4. Pending Tasks */}
         <BulletListInput
-          title="Pending Tasks & Next Steps"
+          title="Pending Tasks"
           icon={Clock}
           items={pendingTasks}
           setItems={setPendingTasks}
-          placeholder="e.g. Complete dynamic connection"
+          placeholder="What tasks are remaining or planned for tomorrow?"
           accentColor="amber"
+          onInputFocus={handleInputFocus}
+          onInputBlur={handleInputBlur}
         />
 
         {/* 5. Additional Notes (Optional) */}
-        <div className="p-4 sm:p-5 rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+        <div className="p-3.5 sm:p-5 rounded-2xl border border-slate-200 bg-white shadow-xs">
+          <label className="block text-2xs sm:text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
             <FileText className="w-3.5 h-3.5 text-slate-500" />
             Additional Notes / Comments (Optional)
           </label>
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            rows={3}
-            placeholder="Add any additional comments or notes..."
-            className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-800 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all resize-y"
+            onFocus={handleInputFocus}
+            onBlur={handleInputBlur}
+            rows={2}
+            placeholder="Any blockers, questions, or extra comments..."
+            className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-slate-800 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all resize-y"
           />
         </div>
 
-        {/* Fixed Docked Bottom Action Bar for Mobile & Desktop */}
-        <div className="fixed bottom-0 left-0 right-0 z-40 bg-slate-900/95 backdrop-blur-md text-white px-4 py-3 sm:py-4 border-t border-slate-800 shadow-2xl">
-          <div className="max-w-5xl mx-auto flex items-center justify-between sm:justify-end gap-2.5 sm:gap-4">
+        {/* Fixed Docked Bottom Action Bar - Automatically HIDES when typing! */}
+        <div 
+          className={`fixed bottom-0 left-0 right-0 z-40 bg-slate-900/95 backdrop-blur-md text-white px-3 sm:px-6 py-2.5 sm:py-3.5 border-t border-slate-800 shadow-2xl transition-all duration-200 ease-in-out ${
+            isTyping ? 'translate-y-full opacity-0 pointer-events-none' : 'translate-y-0 opacity-100 pointer-events-auto'
+          }`}
+        >
+          <div className="max-w-4xl mx-auto flex items-center justify-between sm:justify-end gap-2.5 sm:gap-4">
             
             {/* 1. Preview Email Button */}
             <button
               type="button"
               onClick={handleOpenPreview}
-              className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 sm:px-6 py-3 bg-slate-800 hover:bg-slate-700 active:bg-slate-900 text-white rounded-xl border border-slate-600 text-xs sm:text-sm font-bold transition-all cursor-pointer hover:border-emerald-400/50"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 sm:px-6 py-2.5 bg-slate-800 hover:bg-slate-700 active:bg-slate-900 text-white rounded-xl border border-slate-600 text-xs sm:text-sm font-bold transition-all cursor-pointer"
             >
               <Eye className="w-4 h-4 text-emerald-400" />
               <span>Preview Email</span>
@@ -404,7 +425,7 @@ export default function ReportForm({ onReportSubmitted, showToast, managerEmail,
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 sm:px-8 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 active:from-emerald-700 active:to-emerald-800 text-white font-extrabold text-xs sm:text-sm rounded-xl shadow-lg shadow-emerald-950/40 transition-all cursor-pointer transform hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-5 sm:px-8 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 active:from-emerald-700 active:to-emerald-800 text-white font-extrabold text-xs sm:text-sm rounded-xl shadow-lg shadow-emerald-950/40 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSubmitting ? (
                 <>
