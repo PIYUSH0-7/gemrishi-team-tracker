@@ -23,15 +23,16 @@ app.get('/logo.svg', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'GemRishi.svg'));
 });
 
-// --- API ROUTES ---
+// --- API ROUTER ---
+const apiRouter = express.Router();
 
 // Health Check
-app.get('/api/health', (req, res) => {
+apiRouter.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString(), env: process.env.NODE_ENV || 'production' });
 });
 
-// GET /api/reports - List & search reports
-app.get('/api/reports', (req, res) => {
+// GET /reports - List & search reports
+apiRouter.get('/reports', (req, res) => {
   try {
     const { date, department, employeeName, search, limit, offset } = req.query;
     const result = db.getReports({
@@ -49,8 +50,8 @@ app.get('/api/reports', (req, res) => {
   }
 });
 
-// GET /api/reports/:id - Single report
-app.get('/api/reports/:id', (req, res) => {
+// GET /reports/:id - Single report
+apiRouter.get('/reports/:id', (req, res) => {
   try {
     const report = db.getReportById(req.params.id);
     if (!report) {
@@ -62,8 +63,8 @@ app.get('/api/reports/:id', (req, res) => {
   }
 });
 
-// POST /api/reports - Submit new report & auto-send email
-app.post('/api/reports', async (req, res) => {
+// POST /reports - Submit new report & auto-send email
+apiRouter.post('/reports', async (req, res) => {
   try {
     const { employeeName, department, reportDate, targets, workCompleted, results, pendingTasks, notes } = req.body;
 
@@ -125,8 +126,8 @@ app.post('/api/reports', async (req, res) => {
   }
 });
 
-// PUT /api/reports/:id - Update report
-app.put('/api/reports/:id', (req, res) => {
+// PUT /reports/:id - Update report
+apiRouter.put('/reports/:id', (req, res) => {
   try {
     const updated = db.updateReport(req.params.id, req.body);
     if (!updated) {
@@ -138,8 +139,8 @@ app.put('/api/reports/:id', (req, res) => {
   }
 });
 
-// DELETE /api/reports/:id - Delete report
-app.delete('/api/reports/:id', (req, res) => {
+// DELETE /reports/:id - Delete report
+apiRouter.delete('/reports/:id', (req, res) => {
   try {
     const success = db.deleteReport(req.params.id);
     if (!success) {
@@ -151,8 +152,8 @@ app.delete('/api/reports/:id', (req, res) => {
   }
 });
 
-// POST /api/reports/:id/resend - Resend email for existing report
-app.post('/api/reports/:id/resend', async (req, res) => {
+// POST /reports/:id/resend - Resend email for existing report
+apiRouter.post('/reports/:id/resend', async (req, res) => {
   try {
     const report = db.getReportById(req.params.id);
     if (!report) {
@@ -182,8 +183,8 @@ app.post('/api/reports/:id/resend', async (req, res) => {
   }
 });
 
-// GET /api/employee/last-pending - Carry forward yesterday's pending tasks
-app.get('/api/employee/last-pending', (req, res) => {
+// GET /employee/last-pending
+apiRouter.get('/employee/last-pending', (req, res) => {
   try {
     const { name } = req.query;
     const pending = db.getLastPendingTasks(name);
@@ -193,8 +194,8 @@ app.get('/api/employee/last-pending', (req, res) => {
   }
 });
 
-// GET /api/analytics - Summary stats
-app.get('/api/analytics', (req, res) => {
+// GET /analytics - Summary stats
+apiRouter.get('/analytics', (req, res) => {
   try {
     const summary = db.getAnalyticsSummary();
     res.json(summary);
@@ -203,8 +204,8 @@ app.get('/api/analytics', (req, res) => {
   }
 });
 
-// POST /api/preview-email - Live preview of HTML template
-app.post('/api/preview-email', (req, res) => {
+// POST /preview-email - Live preview of HTML template
+apiRouter.post('/preview-email', (req, res) => {
   try {
     const { branding: clientBranding, ...report } = req.body;
     const settings = db.getSettings();
@@ -220,8 +221,8 @@ app.post('/api/preview-email', (req, res) => {
   }
 });
 
-// GET /api/settings - Fetch settings (with pass masked)
-app.get('/api/settings', (req, res) => {
+// GET /settings - Fetch settings (with pass masked)
+apiRouter.get('/settings', (req, res) => {
   try {
     const settings = db.getSettings();
     const safeSettings = {
@@ -235,8 +236,8 @@ app.get('/api/settings', (req, res) => {
   }
 });
 
-// POST /api/settings - Update settings
-app.post('/api/settings', (req, res) => {
+// POST /settings - Update settings
+apiRouter.post('/settings', (req, res) => {
   try {
     const currentSettings = db.getSettings();
     const updateData = { ...req.body };
@@ -259,8 +260,8 @@ app.post('/api/settings', (req, res) => {
   }
 });
 
-// POST /api/settings/test-email - Test SMTP connection
-app.post('/api/settings/test-email', async (req, res) => {
+// POST /settings/test-email - Test SMTP connection
+apiRouter.post('/settings/test-email', async (req, res) => {
   try {
     const currentSettings = db.getSettings();
     const testConfig = { ...currentSettings, ...req.body };
@@ -277,8 +278,8 @@ app.post('/api/settings/test-email', async (req, res) => {
   }
 });
 
-// GET /api/departments
-app.get('/api/departments', (req, res) => {
+// GET /departments
+apiRouter.get('/departments', (req, res) => {
   try {
     const depts = db.getDepartments();
     res.json(depts);
@@ -287,8 +288,8 @@ app.get('/api/departments', (req, res) => {
   }
 });
 
-// POST /api/departments
-app.post('/api/departments', (req, res) => {
+// POST /departments
+apiRouter.post('/departments', (req, res) => {
   try {
     const { name } = req.body;
     if (!name) return res.status(400).json({ error: 'Department name is required' });
@@ -299,13 +300,18 @@ app.post('/api/departments', (req, res) => {
   }
 });
 
+// Mount the API router to handle both /api/* and Netlify function paths
+app.use('/api', apiRouter);
+app.use('/.netlify/functions/api/api', apiRouter);
+app.use('/.netlify/functions/api', apiRouter);
+
 // Fallback for SPA routing in production
 app.use((req, res) => {
   const indexPath = path.join(clientDistPath, 'index.html');
   if (require('fs').existsSync(indexPath)) {
     res.sendFile(indexPath);
   } else {
-    res.send(`Team Work Tracker Server is running. Client build will be served here.`);
+    res.send(`Team Work Tracker Server is running.`);
   }
 });
 

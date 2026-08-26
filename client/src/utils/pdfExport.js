@@ -15,6 +15,21 @@ function escapeHTML(str) {
 }
 
 /**
+ * Strip all 4-byte/3-byte emojis and unsupported unicode characters
+ * to prevent PDF font encoding corruption (e.g. Ø=ÜÊ)
+ */
+function sanitizeForPDF(text) {
+  if (!text) return '';
+  return String(text)
+    // Remove unicode emoji blocks
+    .replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]|\uD83C[\uDF00-\uDFFF]|\uD83D[\uDC00-\uDE4F]|\uD83E[\uDD00-\uDDFF]|[\u2600-\u27BF]/gu, '')
+    // Replace non-ascii high characters
+    .replace(/[^\x00-\x7F]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
  * Adjust hex color brightness
  */
 function adjustHex(hex, percent) {
@@ -38,7 +53,7 @@ function adjustHex(hex, percent) {
 }
 
 /**
- * Builds the exact HTML email layout for canvas capture
+ * Builds the exact HTML email layout for canvas capture (Clean typography without raw emojis)
  */
 function buildEmailHtmlLayout(report, branding = {}) {
   const {
@@ -126,58 +141,58 @@ function buildEmailHtmlLayout(report, branding = {}) {
         </div>
         <div style="text-align: right;">
           <div style="font-size: 9px; text-transform: uppercase; color: #64748b; font-weight: 700; letter-spacing: 0.5px;">Report Date</div>
-          <div style="font-size: 12px; font-weight: 600; color: #334155; margin-top: 1px;">📅 ${escapeHTML(formattedDate)}</div>
+          <div style="font-size: 12px; font-weight: 600; color: #334155; margin-top: 1px;">${escapeHTML(formattedDate)}</div>
         </div>
       </div>
 
-      <!-- Content Sections -->
+      <!-- Content Sections (Clean typography, no emoji corruption) -->
       <div style="padding: 14px 24px 18px 24px;">
         
-        <!-- Targets -->
+        <!-- 1. Targets -->
         <div style="margin-bottom: 11px; border: 1px solid #e2e8f0; border-radius: 7px; overflow: hidden;">
           <div style="background-color: #f8fafc; border-bottom: 1px solid #e2e8f0; padding: 5px 10px; font-size: 11px; font-weight: 700; color: #1e293b;">
-            🎯 Targets for Today (${targets.length})
+            1. Targets Planned (${targets.length})
           </div>
           <div style="padding: 8px 10px; background-color: #ffffff;">
             ${renderBullets(targets, brandSecondary)}
           </div>
         </div>
 
-        <!-- Work Completed -->
+        <!-- 2. Work Completed -->
         <div style="margin-bottom: 11px; border: 1px solid #cbd5e1; border-left: 4px solid ${brandSecondary}; border-radius: 7px; overflow: hidden;">
           <div style="background-color: #f0fdf4; border-bottom: 1px solid #bbf7d0; padding: 5px 10px; font-size: 11px; font-weight: 700; color: #166534;">
-            ✅ Work Completed (${workCompleted.length})
+            2. Work Completed (${workCompleted.length})
           </div>
           <div style="padding: 8px 10px; background-color: #ffffff;">
             ${renderBullets(workCompleted, brandSecondary)}
           </div>
         </div>
 
-        <!-- Results -->
+        <!-- 3. Results -->
         <div style="margin-bottom: 11px; border: 1px solid #e2e8f0; border-radius: 7px; overflow: hidden;">
           <div style="background-color: #f0fdfa; border-bottom: 1px solid #99f6e4; padding: 5px 10px; font-size: 11px; font-weight: 700; color: #115e59;">
-            📊 Results & Key Findings (${results.length})
+            3. Results & Key Findings (${results.length})
           </div>
           <div style="padding: 8px 10px; background-color: #ffffff;">
             ${renderBullets(results, '#0d9488')}
           </div>
         </div>
 
-        <!-- Pending Tasks -->
+        <!-- 4. Pending Tasks -->
         <div style="margin-bottom: ${notes ? '11px' : '0'}; border: 1px solid #fed7aa; border-left: 4px solid #ea580c; border-radius: 7px; overflow: hidden;">
           <div style="background-color: #fff7ed; border-bottom: 1px solid #ffedd5; padding: 5px 10px; font-size: 11px; font-weight: 700; color: #9a3412;">
-            ⏳ Pending Tasks (${pendingTasks.length})
+            4. Pending Tasks (${pendingTasks.length})
           </div>
           <div style="padding: 8px 10px; background-color: #ffffff;">
             ${renderBullets(pendingTasks, '#ea580c')}
           </div>
         </div>
 
-        <!-- Additional Notes -->
+        <!-- 5. Additional Notes -->
         ${notes ? `
           <div style="border: 1px solid #e2e8f0; border-radius: 7px; overflow: hidden;">
             <div style="background-color: #f8fafc; border-bottom: 1px solid #e2e8f0; padding: 5px 10px; font-size: 11px; font-weight: 700; color: #475569;">
-              📝 Notes / Comments
+              5. Notes & Comments
             </div>
             <div style="padding: 8px 10px; background-color: #ffffff; font-size: 11px; line-height: 1.4; color: #334155;">
               ${escapeHTML(notes).replace(/\n/g, '<br/>')}
@@ -198,7 +213,7 @@ function buildEmailHtmlLayout(report, branding = {}) {
 }
 
 /**
- * Fallback direct vector PDF generator
+ * Fallback direct vector PDF generator (Uses 100% clean typography, zero corrupted emoji characters)
  */
 function generateFallbackPDF(report, branding) {
   const {
@@ -222,33 +237,33 @@ function generateFallbackPDF(report, branding) {
 
   // Header Banner
   doc.setFillColor(34, 73, 56);
-  doc.rect(10, 10, 190, 20, 'F');
+  doc.rect(10, 10, 190, 18, 'F');
 
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(16);
+  doc.setFontSize(14);
   doc.setFont('helvetica', 'bold');
-  doc.text(`${companyName} - Daily Work Report`, 15, 22);
+  doc.text(`${sanitizeForPDF(companyName)} - Daily Work Report`, 15, 21);
 
   // Info Row
   doc.setTextColor(30, 41, 59);
-  doc.setFontSize(10);
+  doc.setFontSize(9.5);
   doc.setFont('helvetica', 'normal');
-  doc.text(`Employee: ${employeeName}`, 15, 37);
-  doc.text(`Department: ${department}`, 85, 37);
-  doc.text(`Date: ${reportDate}`, 150, 37);
+  doc.text(`Employee: ${sanitizeForPDF(employeeName)}`, 15, 35);
+  doc.text(`Department: ${sanitizeForPDF(department)}`, 85, 35);
+  doc.text(`Date: ${sanitizeForPDF(reportDate)}`, 150, 35);
 
   doc.setDrawColor(226, 232, 240);
-  doc.line(10, 42, 200, 42);
+  doc.line(10, 40, 200, 40);
 
-  let y = 50;
+  let y = 47;
 
   const renderSection = (title, items) => {
     if (y > 260) return;
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(11);
+    doc.setFontSize(10.5);
     doc.setTextColor(34, 73, 56);
     doc.text(title, 15, y);
-    y += 6;
+    y += 5.5;
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
@@ -256,34 +271,36 @@ function generateFallbackPDF(report, branding) {
 
     if (!items || items.length === 0) {
       doc.text('- None listed', 18, y);
-      y += 5;
+      y += 4.5;
     } else {
       items.forEach((item, idx) => {
         if (y > 275) return;
-        const text = `${idx + 1}. ${item}`;
+        const cleanText = sanitizeForPDF(item);
+        const text = `${idx + 1}. ${cleanText}`;
         const splitText = doc.splitTextToSize(text, 175);
         doc.text(splitText, 18, y);
-        y += splitText.length * 4.5;
+        y += splitText.length * 4.2;
       });
     }
-    y += 4;
+    y += 3.5;
   };
 
-  renderSection(`🎯 Targets for Today (${targets.length})`, targets);
-  renderSection(`✅ Work Completed (${workCompleted.length})`, workCompleted);
-  renderSection(`📊 Results & Key Findings (${results.length})`, results);
-  renderSection(`⏳ Pending Tasks (${pendingTasks.length})`, pendingTasks);
+  renderSection(`1. TARGETS PLANNED (${targets.length})`, targets);
+  renderSection(`2. WORK COMPLETED (${workCompleted.length})`, workCompleted);
+  renderSection(`3. RESULTS & KEY FINDINGS (${results.length})`, results);
+  renderSection(`4. PENDING TASKS (${pendingTasks.length})`, pendingTasks);
 
   if (notes && y < 270) {
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(11);
+    doc.setFontSize(10.5);
     doc.setTextColor(71, 85, 105);
-    doc.text('📝 Notes / Comments', 15, y);
-    y += 6;
+    doc.text('5. NOTES & COMMENTS', 15, y);
+    y += 5.5;
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
     doc.setTextColor(51, 65, 85);
-    const splitNotes = doc.splitTextToSize(notes, 175);
+    const cleanNotes = sanitizeForPDF(notes);
+    const splitNotes = doc.splitTextToSize(cleanNotes, 175);
     doc.text(splitNotes, 18, y);
   }
 
@@ -410,7 +427,7 @@ export async function downloadReportEmailPDF(report, customBranding = null) {
 
     return true;
   } catch (err) {
-    console.warn('Canvas PDF export warning, falling back to direct vector PDF generator:', err.message);
+    console.warn('Canvas capture error, using vector fallback PDF:', err.message);
     generateFallbackPDF(report, branding);
     return true;
   } finally {
