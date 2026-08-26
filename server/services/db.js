@@ -1,54 +1,100 @@
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 const crypto = require('crypto');
+const config = require('../config');
 
-const DATA_DIR = path.join(__dirname, '..', 'data');
+// Detect serverless environment (Netlify Functions, AWS Lambda)
+const isServerless = Boolean(
+  process.env.NETLIFY || 
+  process.env.AWS_LAMBDA_FUNCTION_NAME || 
+  process.env.LAMBDA_TASK_ROOT
+);
+
+// In serverless, only /tmp is writable; locally use ../data
+const DATA_DIR = isServerless ? path.join(os.tmpdir(), 'team_track_data') : path.join(__dirname, '..', 'data');
 const REPORTS_FILE = path.join(DATA_DIR, 'reports.json');
 const SETTINGS_FILE = path.join(DATA_DIR, 'settings.json');
 const DEPARTMENTS_FILE = path.join(DATA_DIR, 'departments.json');
 
-// Ensure data directory exists
-if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
+// Ensure data directory exists safely
+try {
+  if (!fs.existsSync(DATA_DIR)) {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+  }
+} catch (e) {
+  console.warn('Directory creation note (using in-memory persistence):', e.message);
+}
+
+// In-memory memory store cache for serverless execution
+const memoryStore = {
+  reports: null,
+  settings: null,
+  departments: null
+};
+
+function getStoreKey(filePath) {
+  if (filePath.includes('reports')) return 'reports';
+  if (filePath.includes('settings')) return 'settings';
+  if (filePath.includes('departments')) return 'departments';
+  return 'data';
 }
 
 // Helper to safely read JSON file
 function readJSON(filePath, defaultValue) {
+  const key = getStoreKey(filePath);
+  if (memoryStore[key]) {
+    return memoryStore[key];
+  }
+
   try {
-    if (!fs.existsSync(filePath)) {
-      fs.writeFileSync(filePath, JSON.stringify(defaultValue, null, 2), 'utf-8');
-      return defaultValue;
+    if (fs.existsSync(filePath)) {
+      const data = fs.readFileSync(filePath, 'utf-8');
+      memoryStore[key] = JSON.parse(data);
+      return memoryStore[key];
     }
-    const data = fs.readFileSync(filePath, 'utf-8');
-    return JSON.parse(data);
   } catch (err) {
-    console.error(`Error reading ${filePath}:`, err.message);
-    return defaultValue;
+    console.warn(`File read fallback for ${filePath}:`, err.message);
+  }
+
+  memoryStore[key] = Array.isArray(defaultValue) ? [...defaultValue] : { ...defaultValue };
+  return memoryStore[key];
+}
+
+// Helper to safely write JSON file
+function writeJSON(filePath, data) {
+  const key = getStoreKey(filePath);
+  memoryStore[key] = data;
+
+  try {
+    const tempPath = `${filePath}.tmp.${Date.now()}`;
+    fs.writeFileSync(tempPath, JSON.stringify(data, null, 2), 'utf-8');
+    fs.renameSync(tempPath, filePath);
+  } catch (err) {
+    try {
+      fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8');
+    } catch (e) {
+      console.warn(`Disk write bypassed (saved in memory):`, e.message);
+    }
   }
 }
 
-// Helper to safely write JSON file atomically
-function writeJSON(filePath, data) {
-  const tempPath = `${filePath}.tmp.${Date.now()}`;
-  fs.writeFileSync(tempPath, JSON.stringify(data, null, 2), 'utf-8');
-  fs.renameSync(tempPath, filePath);
-}
-
-const config = require('../config');
-
 // Default settings sourced directly from server/config.js
 const DEFAULT_SETTINGS = {
-  managerEmail: config.MANAGER_EMAIL || 'management@gemrishi.com',
+  managerEmail: config.MANAGER_EMAIL || 'gangwarpiyush827@gmail.com',
   ccEmails: config.CC_EMAILS || '',
   senderName: config.SENDER_NAME || 'GemRishi Team Tracker',
   smtpHost: config.SMTP_HOST || 'smtp.gmail.com',
-  smtpPort: config.SMTP_PORT || 587,
-  smtpSecure: Boolean(config.SMTP_SECURE),
-  smtpUser: config.SMTP_USER || '',
-  smtpPass: config.SMTP_PASS || '',
+  smtpPort: 465,
+  smtpSecure: true,
+  smtpUser: config.SMTP_USER || 'gangwarpiyush827@gmail.com',
+  smtpPass: config.SMTP_PASS || 'bqbx kakb fxql ubur',
   autoEmailOnSubmit: config.AUTO_EMAIL_ON_SUBMIT !== false,
   subjectPrefix: config.SUBJECT_PREFIX || '[Daily Work Report]',
   companyName: config.COMPANY_NAME || 'GemRishi',
+  companyLogo: '',
+  brandColor: '#224938',
+  brandSecondaryColor: '#059669',
   updatedAt: new Date().toISOString()
 };
 
@@ -65,11 +111,11 @@ const DEFAULT_DEPARTMENTS = [
   'Customer Support'
 ];
 
-// Sample initial report for Piyush Gangwar
+// Sample initial report for Pawan Gangwar
 const SAMPLE_REPORTS = [
   {
-    id: 'sample-Piyush-2026-08-25',
-    employeeName: 'Piyush Gangwar',
+    id: 'sample-pawan-2026-08-25',
+    employeeName: 'Pawan Gangwar',
     department: 'IT',
     reportDate: '2026-08-25',
     submittedAt: '2026-08-25T18:30:00.000Z',
@@ -100,7 +146,7 @@ const SAMPLE_REPORTS = [
     ],
     notes: 'All core architecture changes mapped and ready for testing.',
     emailStatus: 'sent',
-    emailRecipient: 'management@gemrishi.com',
+    emailRecipient: 'gangwarpiyush827@gmail.com',
     emailSentAt: '2026-08-25T18:30:15.000Z'
   }
 ];
@@ -160,7 +206,7 @@ const db = {
       results: Array.isArray(reportData.results) ? reportData.results.filter(r => r && r.trim()) : [],
       pendingTasks: Array.isArray(reportData.pendingTasks) ? reportData.pendingTasks.filter(p => p && p.trim()) : [],
       notes: reportData.notes?.trim() || '',
-      emailStatus: 'pending', // 'sent', 'failed', 'preview_only'
+      emailStatus: 'pending',
       emailRecipient: '',
       emailSentAt: null,
       emailError: null
@@ -211,17 +257,14 @@ const db = {
 
     const todayReports = reports.filter(r => r.reportDate === today);
     
-    // Group by department
     const deptCounts = {};
     reports.forEach(r => {
       const dept = r.department || 'Other';
       deptCounts[dept] = (deptCounts[dept] || 0) + 1;
     });
 
-    // Unique employees
     const uniqueEmployees = new Set(reports.map(r => r.employeeName)).size;
 
-    // Total tasks stats
     let totalCompletedTasks = 0;
     let totalPendingTasks = 0;
     reports.forEach(r => {
@@ -248,10 +291,10 @@ const db = {
       managerEmail: saved.managerEmail || config.MANAGER_EMAIL || 'gangwarpiyush827@gmail.com',
       ccEmails: saved.ccEmails !== undefined ? saved.ccEmails : (config.CC_EMAILS || ''),
       smtpHost: saved.smtpHost || config.SMTP_HOST || 'smtp.gmail.com',
-      smtpPort: saved.smtpPort || config.SMTP_PORT || 587,
-      smtpSecure: saved.smtpSecure !== undefined ? saved.smtpSecure : Boolean(config.SMTP_SECURE),
-      smtpUser: saved.smtpUser || config.SMTP_USER || '',
-      smtpPass: saved.smtpPass || config.SMTP_PASS || '',
+      smtpPort: saved.smtpPort || config.SMTP_PORT || 465,
+      smtpSecure: saved.smtpSecure !== undefined ? saved.smtpSecure : true,
+      smtpUser: saved.smtpUser || config.SMTP_USER || 'gangwarpiyush827@gmail.com',
+      smtpPass: saved.smtpPass || config.SMTP_PASS || 'bqbx kakb fxql ubur',
       companyName: saved.companyName || config.COMPANY_NAME || 'GemRishi',
       companyLogo: saved.companyLogo || '',
       brandColor: saved.brandColor || '#224938',
